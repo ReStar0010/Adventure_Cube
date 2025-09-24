@@ -9949,9 +9949,9 @@ var require_VirtualizedList = __commonJS({
   }
 });
 
-// node_modules/react-native-web/node_modules/memoize-one/dist/memoize-one.cjs.js
+// node_modules/memoize-one/dist/memoize-one.cjs.js
 var require_memoize_one_cjs = __commonJS({
-  "node_modules/react-native-web/node_modules/memoize-one/dist/memoize-one.cjs.js"(exports2, module2) {
+  "node_modules/memoize-one/dist/memoize-one.cjs.js"(exports2, module2) {
     "use strict";
     var safeIsNaN = Number.isNaN || /* @__PURE__ */ __name(function ponyfill(value) {
       return typeof value === "number" && value !== value;
@@ -25328,18 +25328,21 @@ var DialogPortal = React33.forwardRef((props, forwardRef24) => {
       onExitComplete: handleExitComplete,
       children: isMountedOrOpen || isAdapted ? children : null
     })
-  });
-  if (isFullyHidden && !isAdapted) return null;
-  const framedContents = /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(DialogPortalFrame, {
-    ref,
-    ...isWeb && isMountedOrOpen && {
-      "aria-modal": true
-    },
-    pointerEvents: isMountedOrOpen ? "auto" : "none",
-    ...frameProps,
-    className: "_no_backdrop " + (frameProps.className || ""),
-    children: contents
-  });
+  }), framedContents = (
+    // NOTE: we remove the inner frame, but not the portal itself
+    // saw a bug when we removed and re-added portals that caused stale inner contents of the portal
+    // seems like a React bug itself but leaving this for now as it fixes
+    isFullyHidden && !isAdapted ? null : /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(DialogPortalFrame, {
+      ref,
+      ...isWeb && isMountedOrOpen && {
+        "aria-modal": true
+      },
+      pointerEvents: isMountedOrOpen ? "auto" : "none",
+      ...frameProps,
+      className: "_no_backdrop " + (frameProps.className || ""),
+      children: contents
+    })
+  );
   return isWeb ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Portal, {
     zIndex,
     stackZIndex: 1e3,
