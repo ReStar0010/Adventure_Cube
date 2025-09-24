@@ -1,16 +1,7 @@
 import { XStack, H2, YStack, Text, H4, Card, Button, Image, ScrollView, Group } from "tamagui";
 import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native'
 
-export default function BackgroundScreen() {
-
-    const images = [
-        require('../../assets/images/Background/AC-Castel.png'),
-        require('../../assets/images/Background/AC-Chocolate Lava.png'),
-        require('../../assets/images/Background/AC-Dessert Town.png'),
-        require('../../assets/images/Background/AC-Forest.png'),
-        require('../../assets/images/Background/AC-Magic Village.png'),
-    ]
-
+export default function CharacterScreen() {
     return (
         <>
             <YStack flex={1} pt={30} px={16} bg='#d9d9d9'>
@@ -18,7 +9,7 @@ export default function BackgroundScreen() {
                 <XStack ai="center" gap={8} items={'center'}>
                     <ArrowLeft color='#404040' size={24} />
                     <H4 color='#404040' fontWeight={'bold'}>
-                        背景
+                        角色
                     </H4>
                 </XStack>
 
@@ -29,13 +20,13 @@ export default function BackgroundScreen() {
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: 300 }} contentContainerStyle={{ overflow: 'hidden' }}>
                             <Group orientation="horizontal">
                                 <Group.Item>
-                                    <Button>Castle</Button>
+                                    <Button>First</Button>
                                 </Group.Item>
                                 <Group.Item>
-                                    <Button>Chocolate Lava</Button>
+                                    <Button>Second</Button>
                                 </Group.Item>
                                 <Group.Item>
-                                    <Button>Dessert</Button>
+                                    <Button>Third</Button>
                                 </Group.Item>
                                 <Group.Item>
                                     <Button>Third</Button>
@@ -76,7 +67,9 @@ export default function BackgroundScreen() {
                     {/* Scrollable image container */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <XStack gap={16} px={16}>
-                            {images.map((src, index) => ( <Image key={index} width={300} height={320} src={src} />))}
+                            <Image width={300} height={320} src={require(`../../assets/images/Background/AC-Castel.png`)} />
+                            <Image width={300} height={320} src={require(`../../assets/images/Background/AC-Castel.png`)} />
+                            <Image width={300} height={320} src={require(`../../assets/images/Background/AC-Castel.png`)} />
                         </XStack>
                     </ScrollView>
 
