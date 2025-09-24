@@ -1,22 +1,76 @@
-import { XStack, H2, YStack, Text, H4, Card, Button, Image, ScrollView, Group } from "tamagui";
-import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native'
+import React, { useState, useEffect } from 'react';
+import { TouchableOpacity } from 'react-native';
+import { XStack, YStack, H4, Button, Image, ScrollView, Group } from "tamagui";
+import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Story } from '../../types/Story';
+import { StorageManager } from '../../utils/storage';
+import { BACKGROUNDS } from '../../constants/assets';
 
 export default function BackgroundScreen() {
+    const insets = useSafeAreaInsets();
+    const router = useRouter();
+    const [currentStory, setCurrentStory] = useState<Story | null>(null);
+    const [selectedIndex, setSelectedIndex] = useState(0);
 
-    const images = [
-        require('../../assets/images/Background/AC-Castel.png'),
-        require('../../assets/images/Background/AC-Chocolate Lava.png'),
-        require('../../assets/images/Background/AC-Dessert Town.png'),
-        require('../../assets/images/Background/AC-Forest.png'),
-        require('../../assets/images/Background/AC-Magic Village.png'),
-    ]
+    useEffect(() => {
+        loadCurrentStory();
+    }, []);
+
+    const loadCurrentStory = async () => {
+        try {
+            const story = await StorageManager.getCurrentStory();
+            if (story) {
+                setCurrentStory(story);
+                // If story already has a background, set it as selected
+                const existingIndex = BACKGROUNDS.findIndex(bg => bg.name === story.background.name);
+                if (existingIndex !== -1) {
+                    setSelectedIndex(existingIndex);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load current story:', error);
+        }
+    };
+
+    const handleButtonPress = (index: number) => {
+        setSelectedIndex(index);
+    };
+
+    const handleDicePress = () => {
+        const randomIndex = Math.floor(Math.random() * BACKGROUNDS.length);
+        setSelectedIndex(randomIndex);
+    };
+
+    const handleConfirmPress = async () => {
+        if (!currentStory) return;
+
+        try {
+            const selectedBackground = BACKGROUNDS[selectedIndex];
+            currentStory.background = selectedBackground;
+
+            await StorageManager.updateStory(currentStory);
+            await StorageManager.setCurrentStory(currentStory);
+
+            // Navigate to next step (character selection)
+            router.push('/character');
+        } catch (error) {
+            console.error('Failed to save background selection:', error);
+        }
+    };
+
+    const handleBackPress = () => {
+        router.back();
+    };
 
     return (
-        <>
-            <YStack flex={1} pt={30} px={16} bg='#d9d9d9'>
-
+        <YStack flex={1} bg='#d9d9d9' style={{ paddingTop: insets.top + 10 }}>
+            <YStack px={16} pt={20}>
                 <XStack ai="center" gap={8} items={'center'}>
-                    <ArrowLeft color='#404040' size={24} />
+                    <TouchableOpacity onPress={handleBackPress}>
+                        <ArrowLeft color='#404040' size={24} />
+                    </TouchableOpacity>
                     <H4 color='#404040' fontWeight={'bold'}>
                         背景
                     </H4>
@@ -25,69 +79,55 @@ export default function BackgroundScreen() {
                 <YStack gap={16} mt={20}>
                     {/* Button group */}
                     <XStack items="center" gap={10}>
-
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: 300 }} contentContainerStyle={{ overflow: 'hidden' }}>
                             <Group orientation="horizontal">
-                                <Group.Item>
-                                    <Button>Castle</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Chocolate Lava</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Dessert</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
+                                {BACKGROUNDS.map((background, index) => (
+                                    <Group.Item key={index}>
+                                        <Button
+                                            onPress={() => handleButtonPress(index)}
+                                            bg={selectedIndex === index ? '#5A9FD4' : undefined}
+                                            color={selectedIndex === index ? 'white' : undefined}
+                                        >
+                                            {background.name}
+                                        </Button>
+                                    </Group.Item>
+                                ))}
                             </Group>
                         </ScrollView>
-
                         <ArrowRight color='#404040' size={24} />
                     </XStack>
 
                     {/* Scrollable image container */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <XStack gap={16} px={16}>
-                            {images.map((src, index) => ( <Image key={index} width={300} height={320} src={src} />))}
+                            {BACKGROUNDS.map((background, index) => (
+                                <TouchableOpacity key={index} onPress={() => setSelectedIndex(index)}>
+                                    <Image
+                                        source={background.image}
+                                        width={300}
+                                        height={320}
+                                        style={{
+                                            borderWidth: selectedIndex === index ? 4 : 0,
+                                            borderColor: '#5A9FD4',
+                                            borderRadius: 8
+                                        }}
+                                    />
+                                </TouchableOpacity>
+                            ))}
                         </XStack>
                     </ScrollView>
 
                     {/* Icon stack */}
                     <XStack gap={16} justifyContent="center">
-                        <Dices color='#404040' size={100} />
-                        <CheckCircle2 color='#404040' size={100} />
+                        <TouchableOpacity onPress={handleDicePress}>
+                            <Dices color='#404040' size={100} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleConfirmPress}>
+                            <CheckCircle2 color='#5A9FD4' size={100} />
+                        </TouchableOpacity>
                     </XStack>
                 </YStack>
-
             </YStack>
-        </>
+        </YStack>
     );
 }

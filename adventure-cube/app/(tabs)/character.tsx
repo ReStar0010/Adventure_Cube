@@ -1,13 +1,76 @@
-import { XStack, H2, YStack, Text, H4, Card, Button, Image, ScrollView, Group } from "tamagui";
-import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native'
+import React, { useState, useEffect } from 'react';
+import { TouchableOpacity } from 'react-native';
+import { XStack, YStack, H4, Button, Image, ScrollView, Group } from "tamagui";
+import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Story } from '../../types/Story';
+import { StorageManager } from '../../utils/storage';
+import { CHARACTERS } from '../../constants/assets';
 
 export default function CharacterScreen() {
-    return (
-        <>
-            <YStack flex={1} pt={30} px={16} bg='#d9d9d9'>
+    const insets = useSafeAreaInsets();
+    const router = useRouter();
+    const [currentStory, setCurrentStory] = useState<Story | null>(null);
+    const [selectedIndex, setSelectedIndex] = useState(0);
 
+    useEffect(() => {
+        loadCurrentStory();
+    }, []);
+
+    const loadCurrentStory = async () => {
+        try {
+            const story = await StorageManager.getCurrentStory();
+            if (story) {
+                setCurrentStory(story);
+                // If story already has a character, set it as selected
+                const existingIndex = CHARACTERS.findIndex(char => char.name === story.character.name);
+                if (existingIndex !== -1) {
+                    setSelectedIndex(existingIndex);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load current story:', error);
+        }
+    };
+
+    const handleButtonPress = (index: number) => {
+        setSelectedIndex(index);
+    };
+
+    const handleDicePress = () => {
+        const randomIndex = Math.floor(Math.random() * CHARACTERS.length);
+        setSelectedIndex(randomIndex);
+    };
+
+    const handleConfirmPress = async () => {
+        if (!currentStory) return;
+
+        try {
+            const selectedCharacter = CHARACTERS[selectedIndex];
+            currentStory.character = selectedCharacter;
+
+            await StorageManager.updateStory(currentStory);
+            await StorageManager.setCurrentStory(currentStory);
+
+            // Navigate to next step (theme selection)
+            router.push('/theme');
+        } catch (error) {
+            console.error('Failed to save character selection:', error);
+        }
+    };
+
+    const handleBackPress = () => {
+        router.back();
+    };
+
+    return (
+        <YStack flex={1} bg='#d9d9d9' style={{ paddingTop: insets.top + 10 }}>
+            <YStack px={16} pt={20}>
                 <XStack ai="center" gap={8} items={'center'}>
-                    <ArrowLeft color='#404040' size={24} />
+                    <TouchableOpacity onPress={handleBackPress}>
+                        <ArrowLeft color='#404040' size={24} />
+                    </TouchableOpacity>
                     <H4 color='#404040' fontWeight={'bold'}>
                         角色
                     </H4>
@@ -16,71 +79,56 @@ export default function CharacterScreen() {
                 <YStack gap={16} mt={20}>
                     {/* Button group */}
                     <XStack items="center" gap={10}>
-
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: 300 }} contentContainerStyle={{ overflow: 'hidden' }}>
                             <Group orientation="horizontal">
-                                <Group.Item>
-                                    <Button>First</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Second</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
-                                <Group.Item>
-                                    <Button>Third</Button>
-                                </Group.Item>
+                                {CHARACTERS.map((character, index) => (
+                                    <Group.Item key={index}>
+                                        <Button
+                                            onPress={() => handleButtonPress(index)}
+                                            bg={selectedIndex === index ? '#5A9FD4' : undefined}
+                                            color={selectedIndex === index ? 'white' : undefined}
+                                        >
+                                            {character.name}
+                                        </Button>
+                                    </Group.Item>
+                                ))}
                             </Group>
                         </ScrollView>
-
                         <ArrowRight color='#404040' size={24} />
                     </XStack>
 
                     {/* Scrollable image container */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <XStack gap={16} px={16}>
-                            <Image width={300} height={320} src={require(`../../assets/images/Background/AC-Castel.png`)} />
-                            <Image width={300} height={320} src={require(`../../assets/images/Background/AC-Castel.png`)} />
-                            <Image width={300} height={320} src={require(`../../assets/images/Background/AC-Castel.png`)} />
+                            {CHARACTERS.map((character, index) => (
+                                <TouchableOpacity key={index} onPress={() => setSelectedIndex(index)}>
+                                    <Image
+                                        source={character.image}
+                                        width={300}
+                                        height={320}
+                                        resizeMode="contain"
+                                        style={{
+                                            borderWidth: selectedIndex === index ? 4 : 0,
+                                            borderColor: '#5A9FD4',
+                                            borderRadius: 8
+                                        }}
+                                    />
+                                </TouchableOpacity>
+                            ))}
                         </XStack>
                     </ScrollView>
 
                     {/* Icon stack */}
                     <XStack gap={16} justifyContent="center">
-                        <Dices color='#404040' size={100} />
-                        <CheckCircle2 color='#404040' size={100} />
+                        <TouchableOpacity onPress={handleDicePress}>
+                            <Dices color='#404040' size={100} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleConfirmPress}>
+                            <CheckCircle2 color='#5A9FD4' size={100} />
+                        </TouchableOpacity>
                     </XStack>
                 </YStack>
-
             </YStack>
-        </>
+        </YStack>
     );
 }
