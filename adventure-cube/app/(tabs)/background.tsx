@@ -14,11 +14,8 @@ export default function BackgroundScreen() {
     const [currentStory, setCurrentStory] = useState<Story | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
 
-    // Get screen dimensions
     const { width: screenWidth } = Dimensions.get('window');
     const { height: screenHeight } = Dimensions.get('window');
-    // Calculate responsive image size accounting for padding and gaps
-    // Total padding: 16px left + 16px right + 16px gap between images = 48px
     const imageWidth = screenWidth * 0.6; // Reduced to 60% to account for padding and gaps
     const imageHeight = screenHeight * 0.4;
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Dimensions } from 'react-native';
 import { XStack, YStack, H4, Button, Image, ScrollView, Group } from "tamagui";
 import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,13 @@ export default function ThemeScreen() {
     const router = useRouter();
     const [currentStory, setCurrentStory] = useState<Story | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    
+    const { width: screenWidth } = Dimensions.get('window');
+    const { height: screenHeight } = Dimensions.get('window');
+    const imageWidth = screenWidth * 0.6; // Reduced to 60% to account for padding and gaps
+    const imageHeight = screenHeight * 0.3;
+
+
 
     useEffect(() => {
         loadCurrentStory();
@@ -105,10 +112,9 @@ export default function ThemeScreen() {
                                     <YStack items="center" gap={8}>
                                         <Image
                                             source={theme.image}
-                                            width={300}
-                                            height={320}
-                                            resizeMode="contain"
                                             style={{
+                                                width: imageWidth,
+                                                height: imageHeight,
                                                 borderWidth: selectedIndex === index ? 4 : 0,
                                                 borderColor: '#5A9FD4',
                                                 borderRadius: 8

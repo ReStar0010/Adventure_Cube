@@ -40,38 +40,55 @@ export const CHARACTERS: StoryAsset[] = [
 
 export const THEMES: StoryAsset[] = [
   {
-    name: "Adventure",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    name: "Caring",
+    image: require('../assets/images/Theme/AC-Caring Emotion.png') // Placeholder
   },
   {
-    name: "Mystery",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    name: "Courage",
+    image: require('../assets/images/Theme/AC-Courage.png') // Placeholder
   },
   {
-    name: "Romance",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    name: "Friendship",
+    image: require('../assets/images/Theme/AC-Friendship.png') 
   },
   {
-    name: "Fantasy",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    name: "Honest",
+    image: require('../assets/images/Theme/AC-Honest.png') 
+  },
+  {
+    name: "Nature",
+    image: require('../assets/images/Theme/AC-Nature.png')  
+  },
+  {
+    name: "Share",
+    image: require('../assets/images/Theme/AC-Share.png')  
   }
 ];
 
 export const KEY_ITEMS: StoryAsset[] = [
   {
     name: "Magic Key",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    image: require('../assets/images/Key Items/AC-Crystal Key.png') // Placeholder
   },
   {
     name: "Ancient Scroll",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    image: require('../assets/images/Key Items/AC-Holy Grail.png') // Placeholder
   },
   {
     name: "Crystal Orb",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    image: require('../assets/images/Key Items/AC-Magic Crown.png') // Placeholder
   },
   {
-    name: "Golden Compass",
-    image: require('../assets/images/partial-react-logo.png') // Placeholder
+    name: "Magic Lamp",
+    image: require('../assets/images/Key Items/AC-Magic Lamp.png') // Placeholder
+  },
+  {
+    name: "Talking Book",
+    image: require('../assets/images/Key Items/AC-Talking Book.png') // Placeholder
+  },
+  {
+    name: "Treasure Map",
+    image: require('../assets/images/Key Items/AC-Treasure Map.png') // Placeholder
   }
+
 ];
