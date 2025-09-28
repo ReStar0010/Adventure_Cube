@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Dimensions } from 'react-native';
 import { XStack, YStack, H4, Button, Image, ScrollView, Group } from "tamagui";
 import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,14 @@ export default function BackgroundScreen() {
     const router = useRouter();
     const [currentStory, setCurrentStory] = useState<Story | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
+
+    // Get screen dimensions
+    const { width: screenWidth } = Dimensions.get('window');
+    const { height: screenHeight } = Dimensions.get('window');
+    // Calculate responsive image size accounting for padding and gaps
+    // Total padding: 16px left + 16px right + 16px gap between images = 48px
+    const imageWidth = screenWidth * 0.6; // Reduced to 60% to account for padding and gaps
+    const imageHeight = screenHeight * 0.4;
 
     useEffect(() => {
         loadCurrentStory();
@@ -44,8 +52,10 @@ export default function BackgroundScreen() {
     };
 
     const handleConfirmPress = async () => {
-        if (!currentStory) return;
-
+        if (!currentStory){
+            console.error('No current story found');
+            return;
+        }
         try {
             const selectedBackground = BACKGROUNDS[selectedIndex];
             currentStory.background = selectedBackground;
@@ -104,12 +114,13 @@ export default function BackgroundScreen() {
                                 <TouchableOpacity key={index} onPress={() => setSelectedIndex(index)}>
                                     <Image
                                         source={background.image}
-                                        width={300}
-                                        height={320}
                                         style={{
+                                            width: imageWidth,
+                                            height: imageHeight,
+                                            // aspectRatio: 1,  // Maintain original aspect ratio
                                             borderWidth: selectedIndex === index ? 4 : 0,
                                             borderColor: '#5A9FD4',
-                                            borderRadius: 8
+                                            borderRadius: 8,
                                         }}
                                     />
                                 </TouchableOpacity>

@@ -72,7 +72,7 @@ export default function ThemeScreen() {
                         <ArrowLeft color='#404040' size={24} />
                     </TouchableOpacity>
                     <H4 color='#404040' fontWeight={'bold'}>
-                        ;L
+                        主題
                     </H4>
                 </XStack>
 
