@@ -101,7 +101,7 @@ export default function KeyItemsScreen() {
                         <ArrowLeft color='#404040' size={24} />
                     </TouchableOpacity>
                     <H4 color='#404040' fontWeight={'bold'}>
-                        �uSw
+                        關鍵道具
                     </H4>
                 </XStack>
 
