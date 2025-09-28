@@ -108,17 +108,20 @@ export default function CharacterScreen() {
                         <XStack gap={16} px={16}>
                             {CHARACTERS.map((character, index) => (
                                 <TouchableOpacity key={index} onPress={() => setSelectedIndex(index)}>
-                                    <Image
-                                        source={character.image}
-                                        style={{
-                                            width: imageWidth,
-                                            height: imageHeight,
-                                            // aspectRatio: 1,  // Maintain original aspect ratio
-                                            borderWidth: selectedIndex === index ? 4 : 0,
-                                            borderColor: '#5A9FD4',
-                                            borderRadius: 8
-                                        }}
-                                    />
+                                    <YStack items="center" gap={8}>
+                                        <Image
+                                            source={character.image}
+                                            style={{
+                                                width: imageWidth,
+                                                height: imageHeight,
+                                                // aspectRatio: 1,  // Maintain original aspect ratio
+                                                borderWidth: selectedIndex === index ? 4 : 0,
+                                                borderColor: '#5A9FD4',
+                                                borderRadius: 8
+                                            }}
+                                        />
+                                        <H4 color='#404040' textAlign="center">{character.name}</H4>
+                                    </YStack>
                                 </TouchableOpacity>
                             ))}
                         </XStack>

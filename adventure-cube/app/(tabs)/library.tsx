@@ -19,6 +19,7 @@ export default function LibraryScreen() {
     const loadStories = async () => {
         try {
             const storedStories = await StorageManager.getStories();
+            console.log('Loaded stories from storage:', storedStories);
             setStories(storedStories);
         } catch (error) {
             console.error('Failed to load stories:', error);
@@ -55,22 +56,44 @@ export default function LibraryScreen() {
                 <Card.Header>
                     <H4 fontWeight="bold" color="#404040">{story.storyTitle}</H4>
                 </Card.Header>
-                <Card.Content>
-                    <XStack flex={1} justifyContent="center" alignItems="center" gap={8}>
-                        {story.background.image && (
-                            <Image source={story.background.image} width={50} height={50} />
+                <Card.Footer>
+                    <XStack flex={1} justifyContent="center" alignItems="flex-start" gap={12}>
+                        {story.background?.image && story.background.name && (
+                            <YStack items="center" gap={4}>
+                                <Image source={story.background.image} width={50} height={50} />
+                                <H4 fontSize={10} color="#666" textAlign="center" width={60}>
+                                    {story.background.name}
+                                </H4>
+                            </YStack>
                         )}
-                        {story.character.image && (
-                            <Image source={story.character.image} width={50} height={50} />
+                        {story.character?.image && story.character.name && (
+                            <YStack items="center" gap={4}>
+                                <Image source={story.character.image} width={50} height={50} />
+                                <H4 fontSize={10} color="#666" textAlign="center" width={60}>
+                                    {story.character.name}
+                                </H4>
+                            </YStack>
                         )}
-                        {story.theme.image && (
-                            <Image source={story.theme.image} width={50} height={50} />
+                        {story.theme?.image && story.theme.name && (
+                            <YStack items="center" gap={4}>
+                                <Image source={story.theme.image} width={50} height={50} />
+                                <H4 fontSize={10} color="#666" textAlign="center" width={60}>
+                                    {story.theme.name}
+                                </H4>
+                            </YStack>
                         )}
-                        {story.keyItems.map((item, index) => (
-                            item.image ? <Image key={index} source={item.image} width={40} height={40} /> : null
+                        {story.keyItems?.length > 0 && story.keyItems.map((item, index) => (
+                            item?.image && item.name ? (
+                                <YStack key={index} items="center" gap={4}>
+                                    <Image source={item.image} width={40} height={40} />
+                                    <H4 fontSize={9} color="#666" textAlign="center" width={50}>
+                                        {item.name}
+                                    </H4>
+                                </YStack>
+                            ) : null
                         ))}
                     </XStack>
-                </Card.Content>
+                </Card.Footer>
             </Card>
         </TouchableOpacity>
     );
@@ -83,8 +106,8 @@ export default function LibraryScreen() {
                 </H2>
             </YStack>
 
-            <ScrollView flex={1} px={16}>
-                <YStack my={20} items='center' gap={20}>
+            <ScrollView flex={1}>
+                <YStack my={20} px={16} gap={20}>
                     {loading ? (
                         <YStack py={40} items="center">
                             <H4 color='#404040'>Loading stories...</H4>
@@ -97,9 +120,11 @@ export default function LibraryScreen() {
                         </YStack>
                     )}
 
-                    <Button onPress={handleNewStory} bg='#5A9FD4' color='white'>
-                        New Story
-                    </Button>
+                    <YStack items="center" mt={10}>
+                        <Button onPress={handleNewStory} bg='#5A9FD4' color='white'>
+                            New Story
+                        </Button>
+                    </YStack>
                 </YStack>
             </ScrollView>
         </YStack>
