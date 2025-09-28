@@ -26,13 +26,18 @@ export default function BackgroundScreen() {
     const loadCurrentStory = async () => {
         try {
             const story = await StorageManager.getCurrentStory();
+            console.log('Loaded current story:', story);
+
             if (story) {
                 setCurrentStory(story);
                 // If story already has a background, set it as selected
                 const existingIndex = BACKGROUNDS.findIndex(bg => bg.name === story.background.name);
                 if (existingIndex !== -1) {
                     setSelectedIndex(existingIndex);
+                    console.log('Found existing background, setting selected index to:', existingIndex);
                 }
+            } else {
+                console.log('No current story found in storage');
             }
         } catch (error) {
             console.error('Failed to load current story:', error);
@@ -53,17 +58,33 @@ export default function BackgroundScreen() {
             console.error('No current story found');
             return;
         }
+
         try {
             const selectedBackground = BACKGROUNDS[selectedIndex];
-            currentStory.background = selectedBackground;
+            console.log('Selected background:', selectedBackground);
 
-            await StorageManager.updateStory(currentStory);
+            // Update the story object
+            currentStory.background = selectedBackground;
+            console.log('Updated story:', currentStory);
+
+            // First try to update existing story, if not found, add it
+            try {
+                await StorageManager.updateStory(currentStory);
+                console.log('Story updated successfully');
+            } catch (updateError) {
+                console.log('Story not found in storage, adding as new story');
+                await StorageManager.addStory(currentStory);
+            }
+
+            // Set as current story
             await StorageManager.setCurrentStory(currentStory);
+            console.log('Current story set successfully');
 
             // Navigate to next step (character selection)
             router.push('/character');
         } catch (error) {
             console.error('Failed to save background selection:', error);
+            console.error('Error details:', error);
         }
     };
 
@@ -109,17 +130,20 @@ export default function BackgroundScreen() {
                         <XStack gap={16} px={16}>
                             {BACKGROUNDS.map((background, index) => (
                                 <TouchableOpacity key={index} onPress={() => setSelectedIndex(index)}>
-                                    <Image
-                                        source={background.image}
-                                        style={{
-                                            width: imageWidth,
-                                            height: imageHeight,
-                                            // aspectRatio: 1,  // Maintain original aspect ratio
-                                            borderWidth: selectedIndex === index ? 4 : 0,
-                                            borderColor: '#5A9FD4',
-                                            borderRadius: 8,
-                                        }}
-                                    />
+                                    <YStack items="center" gap={8}>
+                                        <Image
+                                            source={background.image}
+                                            style={{
+                                                width: imageWidth,
+                                                height: imageHeight,
+                                                // aspectRatio: 1,  // Maintain original aspect ratio
+                                                borderWidth: selectedIndex === index ? 4 : 0,
+                                                borderColor: '#5A9FD4',
+                                                borderRadius: 8,
+                                            }}
+                                        />
+                                        <H4 color='#404040' textAlign="center">{background.name}</H4>
+                                    </YStack>
                                 </TouchableOpacity>
                             ))}
                         </XStack>
