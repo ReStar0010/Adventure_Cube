@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { TouchableOpacity } from 'react-native';
-import { Button, Card, H2, H4, Image, XStack, YStack, ScrollView } from "tamagui";
+import React, { useState, useEffect, useCallback } from 'react';
+import { TouchableOpacity, Alert } from 'react-native';
+import { Button, Card, H2, H4, Image, XStack, YStack, ScrollView, Input, Dialog, Adapt, Sheet } from "tamagui";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { MoreVertical, Edit2, Trash2 } from 'lucide-react-native';
 import { Story } from '../../types/Story';
 import { StorageManager } from '../../utils/storage';
 
@@ -11,10 +12,22 @@ export default function LibraryScreen() {
     const router = useRouter();
     const [stories, setStories] = useState<Story[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingStory, setEditingStory] = useState<Story | null>(null);
+    const [newStoryName, setNewStoryName] = useState('');
+    const [createStoryDialogOpen, setCreateStoryDialogOpen] = useState(false);
+    const [newStoryTitle, setNewStoryTitle] = useState('');
 
     useEffect(() => {
         loadStories();
     }, []);
+
+    // Reload stories every time the screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            loadStories();
+        }, [])
+    );
 
     const loadStories = async () => {
         try {
@@ -28,16 +41,35 @@ export default function LibraryScreen() {
         }
     };
 
-    const handleNewStory = async () => {
+    const handleNewStory = () => {
+        setNewStoryTitle('');
+        setCreateStoryDialogOpen(true);
+    };
+
+    const handleCreateStory = async () => {
+        if (!newStoryTitle.trim()) {
+            Alert.alert('Error', 'Please enter a story name');
+            return;
+        }
+
         try {
             const newStory = new Story(
                 Date.now().toString(),
-                "New Adventure"
+                newStoryTitle.trim()
             );
+
+            // Save the new story to the library immediately
+            await StorageManager.addStory(newStory);
+
+            // Set as current story for editing
             await StorageManager.setCurrentStory(newStory);
+
+            setCreateStoryDialogOpen(false);
+            setNewStoryTitle('');
             router.push('/background');
         } catch (error) {
             console.error('Failed to create new story:', error);
+            Alert.alert('Error', 'Failed to create new story');
         }
     };
 
@@ -50,12 +82,81 @@ export default function LibraryScreen() {
         }
     };
 
+    const handleEditStory = (story: Story) => {
+        setEditingStory(story);
+        setNewStoryName(story.storyTitle);
+        setEditDialogOpen(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingStory || !newStoryName.trim()) {
+            Alert.alert('Error', 'Please enter a valid story name');
+            return;
+        }
+
+        try {
+            // Create a proper Story instance with updated title
+            const updatedStory = new Story(
+                editingStory.id,
+                newStoryName.trim(),
+                editingStory.background,
+                editingStory.character,
+                editingStory.theme,
+                editingStory.keyItems
+            );
+            updatedStory.generatedStory = editingStory.generatedStory;
+
+            await StorageManager.updateStory(updatedStory);
+
+            // Update local state
+            setStories(stories.map(s => s.id === updatedStory.id ? updatedStory : s));
+
+            setEditDialogOpen(false);
+            setEditingStory(null);
+            setNewStoryName('');
+        } catch (error) {
+            console.error('Failed to update story:', error);
+            Alert.alert('Error', 'Failed to update story name');
+        }
+    };
+
+    const handleDeleteStory = (story: Story) => {
+        Alert.alert(
+            'Delete Story',
+            `Are you sure you want to delete "${story.storyTitle}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await StorageManager.deleteStory(story.id);
+                            setEditDialogOpen(false);
+                            setStories(stories.filter(s => s.id !== story.id));
+                        } catch (error) {
+                            console.error('Failed to delete story:', error);
+                            Alert.alert('Error', 'Failed to delete story');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const renderStoryCard = (story: Story) => (
-        <TouchableOpacity key={story.id} onPress={() => handleStoryPress(story)}>
-            <Card bg='white' width="100%" pressStyle={{ scale: 0.98 }}>
-                <Card.Header>
-                    <H4 fontWeight="bold" color="#404040">{story.storyTitle}</H4>
-                </Card.Header>
+        <Card key={story.id} bg='white' width="100%">
+            <Card.Header>
+                <XStack justifyContent="space-between" alignItems="center">
+                    <TouchableOpacity flex={1} onPress={() => handleStoryPress(story)}>
+                        <H4 fontWeight="bold" color="#404040">{story.storyTitle}</H4>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleEditStory(story)} padding={8}>
+                        <MoreVertical color="#666" size={20} />
+                    </TouchableOpacity>
+                </XStack>
+            </Card.Header>
+            <TouchableOpacity onPress={() => handleStoryPress(story)}>
                 <Card.Footer>
                     <XStack flex={1} justifyContent="center" alignItems="flex-start" gap={12}>
                         {story.background?.image && story.background.name && (
@@ -94,8 +195,8 @@ export default function LibraryScreen() {
                         ))}
                     </XStack>
                 </Card.Footer>
-            </Card>
-        </TouchableOpacity>
+            </TouchableOpacity>
+        </Card>
     );
 
     return (
@@ -127,6 +228,137 @@ export default function LibraryScreen() {
                     </YStack>
                 </YStack>
             </ScrollView>
+
+            {/* Edit Story Dialog */}
+            <Dialog modal open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <Adapt when="sm" platform="touch">
+                    <Sheet animation="medium" zIndex={200000} modal dismissOnSnapToBottom>
+                        <Sheet.Frame padding="$4" gap="$4">
+                            <Adapt.Contents />
+                        </Sheet.Frame>
+                        <Sheet.Overlay animation="lazy" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
+                    </Sheet>
+                </Adapt>
+
+                <Dialog.Portal>
+                    <Dialog.Overlay
+                        key="overlay"
+                        animation="slow"
+                        opacity={0.5}
+                        enterStyle={{ opacity: 0 }}
+                        exitStyle={{ opacity: 0 }}
+                    />
+
+                    <Dialog.Content
+                        bordered
+                        elevate
+                        key="content"
+                        animateOnly={['transform', 'opacity']}
+                        animation={[
+                            'quicker',
+                            {
+                                opacity: {
+                                    overshootClamping: true,
+                                },
+                            },
+                        ]}
+                        enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
+                        exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
+                        gap="$4"
+                    >
+                        <Dialog.Title>Edit Story Name</Dialog.Title>
+                        <Dialog.Description>
+                            Enter a new name for your story
+                        </Dialog.Description>
+
+                        <Input
+                            size="$4"
+                            value={newStoryName}
+                            onChangeText={setNewStoryName}
+                            placeholder="Story name"
+                            autoFocus
+                        />
+
+                        <XStack alignSelf="flex-end" gap="$4">
+                            <Dialog.Close displayWhenAdapted asChild>
+                                <Button theme="alt1" aria-label="Close">
+                                    Cancel
+                                </Button>
+                            </Dialog.Close>
+                            <Button onPress={handleSaveEdit} theme="active" aria-label="Save">
+                                Save
+                            </Button>
+                            <Button onPress={() => editingStory && handleDeleteStory(editingStory)} theme="red" aria-label="Delete">
+                                <Trash2 size={16} />
+                            </Button>
+                        </XStack>
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog>
+
+            {/* Create Story Dialog */}
+            <Dialog modal open={createStoryDialogOpen} onOpenChange={setCreateStoryDialogOpen}>
+                <Adapt when="sm" platform="touch">
+                    <Sheet animation="medium" zIndex={200000} modal dismissOnSnapToBottom>
+                        <Sheet.Frame padding="$4" gap="$4">
+                            <Adapt.Contents />
+                        </Sheet.Frame>
+                        <Sheet.Overlay animation="lazy" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
+                    </Sheet>
+                </Adapt>
+
+                <Dialog.Portal>
+                    <Dialog.Overlay
+                        key="overlay"
+                        animation="slow"
+                        opacity={0.5}
+                        enterStyle={{ opacity: 0 }}
+                        exitStyle={{ opacity: 0 }}
+                    />
+
+                    <Dialog.Content
+                        bordered
+                        elevate
+                        key="content"
+                        animateOnly={['transform', 'opacity']}
+                        animation={[
+                            'quicker',
+                            {
+                                opacity: {
+                                    overshootClamping: true,
+                                },
+                            },
+                        ]}
+                        enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
+                        exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
+                        gap="$4"
+                    >
+                        <Dialog.Title>Create New Story</Dialog.Title>
+                        <Dialog.Description>
+                            Enter a name for your new story
+                        </Dialog.Description>
+
+                        <Input
+                            size="$4"
+                            value={newStoryTitle}
+                            onChangeText={setNewStoryTitle}
+                            placeholder="Story name"
+                            autoFocus
+                        />
+
+                        <XStack alignSelf="flex-end" gap="$4">
+                            <Dialog.Close displayWhenAdapted asChild>
+                                <Button theme="alt1" aria-label="Close">
+                                    Cancel
+                                </Button>
+                            </Dialog.Close>
+                            <Button onPress={handleCreateStory} theme="active" aria-label="Create">
+                                Create
+                            </Button>
+                        </XStack>
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog>
         </YStack>
     );
 }

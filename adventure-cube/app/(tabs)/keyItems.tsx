@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TouchableOpacity, Dimensions } from 'react-native';
 import { XStack, YStack, H4, Card, Image, ScrollView } from "tamagui";
 import { Dices, CheckCircle2, ArrowLeft, Check } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Story, StoryAsset } from '../../types/Story';
 import { StorageManager } from '../../utils/storage';
 import { KEY_ITEMS } from '../../constants/assets';
@@ -12,7 +12,7 @@ export default function KeyItemsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [currentStory, setCurrentStory] = useState<Story | null>(null);
-    const [selectedItems, setSelectedItems] = useState<boolean[]>(new Array(KEY_ITEMS.length).fill(false));
+    const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
     
     const { height: screenHeight } = Dimensions.get('window');
     
@@ -20,20 +20,32 @@ export default function KeyItemsScreen() {
         loadCurrentStory();
     }, []);
 
+    // Load story every time the screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            console.log('KeyItems screen focused, loading current story...');
+            loadCurrentStory();
+        }, [])
+    );
+
     const loadCurrentStory = async () => {
         try {
             const story = await StorageManager.getCurrentStory();
             if (story) {
                 setCurrentStory(story);
-                // If story already has key items, set them as selected
-                const newSelectedItems = new Array(KEY_ITEMS.length).fill(false);
-                story.keyItems.forEach(item => {
-                    const index = KEY_ITEMS.findIndex(keyItem => keyItem.name === item.name);
+                // If story already has key items, set the first one as selected
+                if (story.keyItems.length > 0) {
+                    const index = KEY_ITEMS.findIndex(keyItem => keyItem.name === story.keyItems[0].name);
                     if (index !== -1) {
-                        newSelectedItems[index] = true;
+                        setSelectedItemIndex(index);
+                    } else {
+                        // If saved item not found, pick random one
+                        setSelectedItemIndex(Math.floor(Math.random() * KEY_ITEMS.length));
                     }
-                });
-                setSelectedItems(newSelectedItems);
+                } else {
+                    // If no key items selected yet, pick random one
+                    setSelectedItemIndex(Math.floor(Math.random() * KEY_ITEMS.length));
+                }
             }
         } catch (error) {
             console.error('Failed to load current story:', error);
@@ -41,24 +53,14 @@ export default function KeyItemsScreen() {
     };
 
     const handleItemToggle = (index: number) => {
-        const newSelectedItems = [...selectedItems];
-        newSelectedItems[index] = !newSelectedItems[index];
-        setSelectedItems(newSelectedItems);
+        // Single selection - always select the clicked item
+        setSelectedItemIndex(index);
     };
 
     const handleDicePress = () => {
-        // Randomly select 1-3 items
-        const numItems = Math.floor(Math.random() * 3) + 1;
-        const newSelectedItems = new Array(KEY_ITEMS.length).fill(false);
-
-        const shuffledIndices = Array.from({ length: KEY_ITEMS.length }, (_, i) => i)
-            .sort(() => Math.random() - 0.5);
-
-        for (let i = 0; i < numItems; i++) {
-            newSelectedItems[shuffledIndices[i]] = true;
-        }
-
-        setSelectedItems(newSelectedItems);
+        // Randomly select one item
+        const randomIndex = Math.floor(Math.random() * KEY_ITEMS.length);
+        setSelectedItemIndex(randomIndex);
     };
 
     const handleConfirmPress = async () => {
@@ -66,26 +68,20 @@ export default function KeyItemsScreen() {
 
         try {
             const selectedKeyItems: StoryAsset[] = [];
-            selectedItems.forEach((isSelected, index) => {
-                if (isSelected) {
-                    selectedKeyItems.push(KEY_ITEMS[index]);
-                }
-            });
+            if (selectedItemIndex !== null) {
+                selectedKeyItems.push(KEY_ITEMS[selectedItemIndex]);
+            }
 
             currentStory.keyItems = selectedKeyItems;
 
+            // Update the story in the library (story should already exist from creation)
             await StorageManager.updateStory(currentStory);
+
+            // Update current story
             await StorageManager.setCurrentStory(currentStory);
 
-            // Save the story to the main list if it's new
-            const stories = await StorageManager.getStories();
-            const existingStoryIndex = stories.findIndex(s => s.id === currentStory.id);
-            if (existingStoryIndex === -1) {
-                await StorageManager.addStory(currentStory);
-            }
-
             // Navigate back to library
-            router.push('/library');
+            router.push('/story');
         } catch (error) {
             console.error('Failed to save key items selection:', error);
         }
@@ -117,7 +113,7 @@ export default function KeyItemsScreen() {
                                             width="100%"
                                             p={16}
                                             style={{
-                                                borderWidth: selectedItems[index] ? 2 : 0,
+                                                borderWidth: selectedItemIndex === index ? 2 : 0,
                                                 borderColor: '#5A9FD4'
                                             }}
                                         >
@@ -126,10 +122,10 @@ export default function KeyItemsScreen() {
                                                 <YStack flex={1}>
                                                     <H4 color='#404040'>{item.name}</H4>
                                                 </YStack>
-                                                <YStack w={24} h={24} bg={selectedItems[index] ? '#5A9FD4' : 'white'}
-                                                    borderWidth={2} borderColor='#5A9FD4' borderRadius={4}
+                                                <YStack w={24} h={24} bg={selectedItemIndex === index ? '#5A9FD4' : 'white'}
+                                                    borderWidth={2} borderColor='#5A9FD4' borderRadius={12}
                                                     items="center" justifyContent="center">
-                                                    {selectedItems[index] && <Check color='white' size={16} />}
+                                                    {selectedItemIndex === index && <Check color='white' size={16} />}
                                                 </YStack>
                                             </XStack>
                                         </Card>
