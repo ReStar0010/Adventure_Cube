@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TouchableOpacity, Dimensions } from 'react-native';
 import { XStack, YStack, H4, Button, Image, ScrollView, Group } from "tamagui";
 import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Story } from '../../types/Story';
 import { StorageManager } from '../../utils/storage';
 import { CHARACTERS } from '../../constants/assets';
@@ -23,6 +23,14 @@ export default function CharacterScreen() {
     useEffect(() => {
         loadCurrentStory();
     }, []);
+
+    // Load story every time the screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            console.log('Character screen focused, loading current story...');
+            loadCurrentStory();
+        }, [])
+    );
 
     const loadCurrentStory = async () => {
         try {
@@ -83,7 +91,7 @@ export default function CharacterScreen() {
                 </XStack>
 
                 <YStack gap={16} mt={20}>
-                    {/* Button group */}
+                     {/* Button group */}
                     <XStack items="center" gap={10}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: 300 }} contentContainerStyle={{ overflow: 'hidden' }}>
                             <Group orientation="horizontal">
@@ -102,8 +110,8 @@ export default function CharacterScreen() {
                         </ScrollView>
                         <ArrowRight color='#404040' size={24} />
                     </XStack>
-
-                    {/* Scrollable image container */}
+                    
+                    {/* Center preview image - scrollable */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <XStack gap={16} px={16}>
                             {CHARACTERS.map((character, index) => (
@@ -114,18 +122,21 @@ export default function CharacterScreen() {
                                             style={{
                                                 width: imageWidth,
                                                 height: imageHeight,
-                                                // aspectRatio: 1,  // Maintain original aspect ratio
                                                 borderWidth: selectedIndex === index ? 4 : 0,
                                                 borderColor: '#5A9FD4',
-                                                borderRadius: 8
+                                                borderRadius: 8,
                                             }}
                                         />
-                                        <H4 color='#404040' textAlign="center">{character.name}</H4>
+                                        <H4 color='#404040' textAlign="center" fontWeight={selectedIndex === index ? "bold" : "normal"}>
+                                            {character.name}
+                                        </H4>
                                     </YStack>
                                 </TouchableOpacity>
                             ))}
                         </XStack>
                     </ScrollView>
+
+                   
 
                     {/* Icon stack */}
                     <XStack gap={16} justifyContent="center">

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TouchableOpacity, Dimensions } from 'react-native';
 import { XStack, YStack, H4, Button, Image, ScrollView, Group } from "tamagui";
 import { Dices, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Story } from '../../types/Story';
 import { StorageManager } from '../../utils/storage';
 import { BACKGROUNDS } from '../../constants/assets';
@@ -22,6 +22,14 @@ export default function BackgroundScreen() {
     useEffect(() => {
         loadCurrentStory();
     }, []);
+
+    // Load story every time the screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            console.log('Background screen focused, loading current story...');
+            loadCurrentStory();
+        }, [])
+    );
 
     const loadCurrentStory = async () => {
         try {
@@ -125,7 +133,7 @@ export default function BackgroundScreen() {
                         <ArrowRight color='#404040' size={24} />
                     </XStack>
 
-                    {/* Scrollable image container */}
+                    {/* Center preview image - scrollable */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <XStack gap={16} px={16}>
                             {BACKGROUNDS.map((background, index) => (
@@ -136,13 +144,14 @@ export default function BackgroundScreen() {
                                             style={{
                                                 width: imageWidth,
                                                 height: imageHeight,
-                                                // aspectRatio: 1,  // Maintain original aspect ratio
                                                 borderWidth: selectedIndex === index ? 4 : 0,
                                                 borderColor: '#5A9FD4',
                                                 borderRadius: 8,
                                             }}
                                         />
-                                        <H4 color='#404040' textAlign="center">{background.name}</H4>
+                                        <H4 color='#404040' textAlign="center" fontWeight={selectedIndex === index ? "bold" : "normal"}>
+                                            {background.name}
+                                        </H4>
                                     </YStack>
                                 </TouchableOpacity>
                             ))}
