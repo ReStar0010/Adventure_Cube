@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TouchableOpacity, Alert } from 'react-native';
-import { Button, Card, H2, H4, Image, XStack, YStack, ScrollView, Input, Dialog, Adapt, Sheet } from "tamagui";
+import { TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Button, Card, H2, H4, Image, XStack, YStack, ScrollView, Input, Dialog, Adapt, Sheet, Text } from "tamagui";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MoreVertical, Edit2, Trash2 } from 'lucide-react-native';
 import { Story } from '../../types/Story';
 import { StorageManager } from '../../utils/storage';
+import { StoryService } from '../../services/story.service';
+import { BACKGROUNDS, CHARACTERS, THEMES } from '../../constants/assets';
+import type { BackendStory } from '../../services/api.types';
 
 export default function LibraryScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [stories, setStories] = useState<Story[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editingStory, setEditingStory] = useState<Story | null>(null);
     const [newStoryName, setNewStoryName] = useState('');
@@ -31,11 +35,40 @@ export default function LibraryScreen() {
 
     const loadStories = async () => {
         try {
-            const storedStories = await StorageManager.getStories();
-            console.log('Loaded stories from storage:', storedStories);
-            setStories(storedStories);
-        } catch (error) {
-            console.error('Failed to load stories:', error);
+            setError(null);
+            // Fetch stories from backend API
+            const backendStories = await StoryService.getSavedStories();
+            console.log('Loaded stories from backend:', backendStories);
+
+            // Convert backend stories to frontend Story objects
+            const frontendStories = backendStories.map((backendStory: BackendStory) => {
+                // Find matching assets by name
+                const background = BACKGROUNDS.find(b => b.name.toLowerCase() === backendStory.background?.toLowerCase());
+                const character = CHARACTERS.find(c => c.name.toLowerCase() === backendStory.character?.toLowerCase());
+                const theme = THEMES.find(t => t.name.toLowerCase() === backendStory.theme.toLowerCase());
+
+                // Convert to frontend Story object
+                return StoryService.backendToFrontend(backendStory, {
+                    background,
+                    character,
+                    theme,
+                });
+            });
+
+            setStories(frontendStories);
+        } catch (err) {
+            console.error('Failed to load stories from backend:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load stories');
+
+            // Fallback to local storage if backend fails
+            try {
+                const storedStories = await StorageManager.getStories();
+                console.log('Loaded stories from local storage (fallback):', storedStories);
+                setStories(storedStories);
+                setError('Using offline stories - backend unavailable');
+            } catch (fallbackError) {
+                console.error('Failed to load stories from storage:', fallbackError);
+            }
         } finally {
             setLoading(false);
         }
@@ -53,6 +86,10 @@ export default function LibraryScreen() {
         }
 
         try {
+            // Clear any existing current story cache before creating new one
+            await StorageManager.clearCurrentStory();
+            console.log('Cleared old current story cache before creating new story');
+
             const newStory = new Story(
                 Date.now().toString(),
                 newStoryTitle.trim()
@@ -75,8 +112,10 @@ export default function LibraryScreen() {
 
     const handleStoryPress = async (story: Story) => {
         try {
+            // Set story as current for viewing
+            // Note: This is temporary and will be cleared when user returns to library
             await StorageManager.setCurrentStory(story);
-            router.push('/story');
+            router.push('/view-story');
         } catch (error) {
             console.error('Failed to select story:', error);
         }
@@ -210,16 +249,30 @@ export default function LibraryScreen() {
             <ScrollView flex={1}>
                 <YStack my={20} px={16} gap={20}>
                     {loading ? (
-                        <YStack py={40} items="center">
+                        <YStack py={40} items="center" gap={12}>
+                            <ActivityIndicator size="large" color="#5A9FD4" />
                             <H4 color='#404040'>Loading stories...</H4>
                         </YStack>
-                    ) : stories.length > 0 ? (
+                    ) : error ? (
+                        <YStack py={20} items="center" gap={12}>
+                            <Text color="#c62828" textAlign="center" px={16}>
+                                {error}
+                            </Text>
+                            {stories.length === 0 && (
+                                <Button onPress={loadStories} bg='#5A9FD4' color='white'>
+                                    Retry
+                                </Button>
+                            )}
+                        </YStack>
+                    ) : null}
+
+                    {!loading && stories.length > 0 ? (
                         stories.map(renderStoryCard)
-                    ) : (
+                    ) : !loading && !error ? (
                         <YStack py={40} items="center">
                             <H4 color='#404040'>No stories yet. Create your first story!</H4>
                         </YStack>
-                    )}
+                    ) : null}
 
                     <YStack items="center" mt={10}>
                         <Button onPress={handleNewStory} bg='#5A9FD4' color='white'>

@@ -62,7 +62,7 @@ export default function BackgroundScreen() {
     };
 
     const handleConfirmPress = async () => {
-        if (!currentStory){
+        if (!currentStory) {
             console.error('No current story found');
             return;
         }
@@ -96,7 +96,14 @@ export default function BackgroundScreen() {
         }
     };
 
-    const handleBackPress = () => {
+    const handleBackPress = async () => {
+        // Clear current story cache when user cancels story creation
+        try {
+            await StorageManager.clearCurrentStory();
+            console.log('Cleared current story cache on cancel');
+        } catch (error) {
+            console.error('Failed to clear current story cache:', error);
+        }
         router.back();
     };
 

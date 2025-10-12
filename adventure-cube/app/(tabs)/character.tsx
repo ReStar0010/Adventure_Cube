@@ -74,7 +74,9 @@ export default function CharacterScreen() {
         }
     };
 
-    const handleBackPress = () => {
+    const handleBackPress = async () => {
+        // User is going back from character selection - just navigate back
+        // Don't clear cache as they might want to continue editing
         router.back();
     };
 
@@ -91,7 +93,7 @@ export default function CharacterScreen() {
                 </XStack>
 
                 <YStack gap={16} mt={20}>
-                     {/* Button group */}
+                    {/* Button group */}
                     <XStack items="center" gap={10}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: 300 }} contentContainerStyle={{ overflow: 'hidden' }}>
                             <Group orientation="horizontal">
@@ -110,7 +112,7 @@ export default function CharacterScreen() {
                         </ScrollView>
                         <ArrowRight color='#404040' size={24} />
                     </XStack>
-                    
+
                     {/* Center preview image - scrollable */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <XStack gap={16} px={16}>
@@ -136,7 +138,7 @@ export default function CharacterScreen() {
                         </XStack>
                     </ScrollView>
 
-                   
+
 
                     {/* Icon stack */}
                     <XStack gap={16} justifyContent="center">
