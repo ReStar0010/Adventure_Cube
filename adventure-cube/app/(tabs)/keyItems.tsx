@@ -13,9 +13,9 @@ export default function KeyItemsScreen() {
     const router = useRouter();
     const [currentStory, setCurrentStory] = useState<Story | null>(null);
     const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
-    
+
     const { height: screenHeight } = Dimensions.get('window');
-    
+
     useEffect(() => {
         loadCurrentStory();
     }, []);
@@ -87,7 +87,9 @@ export default function KeyItemsScreen() {
         }
     };
 
-    const handleBackPress = () => {
+    const handleBackPress = async () => {
+        // User is going back from key items selection - just navigate back
+        // Don't clear cache as they might want to continue editing
         router.back();
     };
 
@@ -103,46 +105,46 @@ export default function KeyItemsScreen() {
                     </H4>
                 </XStack>
                 <YStack gap={16} mt={20}>
-                        {/* Grid of key items with checkboxes */}
-                        <ScrollView style={{height: screenHeight*0.5}}>
-                            <YStack gap={12}>
-                                {KEY_ITEMS.map((item, index) => (
-                                    <TouchableOpacity key={index} onPress={() => handleItemToggle(index)}>
-                                        <Card
-                                            bg='white'
-                                            width="100%"
-                                            p={16}
-                                            style={{
-                                                borderWidth: selectedItemIndex === index ? 2 : 0,
-                                                borderColor: '#5A9FD4'
-                                            }}
-                                        >
-                                            <XStack items="center" gap={16}>
-                                                <Image source={item.image} width={50} height={60} />
-                                                <YStack flex={1}>
-                                                    <H4 color='#404040'>{item.name}</H4>
-                                                </YStack>
-                                                <YStack w={24} h={24} bg={selectedItemIndex === index ? '#5A9FD4' : 'white'}
-                                                    borderWidth={2} borderColor='#5A9FD4' borderRadius={12}
-                                                    items="center" justifyContent="center">
-                                                    {selectedItemIndex === index && <Check color='white' size={16} />}
-                                                </YStack>
-                                            </XStack>
-                                        </Card>
-                                    </TouchableOpacity>
-                                ))}
-                            </YStack>
-                        </ScrollView>
-                        {/* Icon stack */}
-                        <XStack gap={16} justifyContent="center" py={20}>
-                            <TouchableOpacity onPress={handleDicePress}>
-                                <Dices color='#404040' size={100} />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={handleConfirmPress}>
-                                <CheckCircle2 color='#5A9FD4' size={100} />
-                            </TouchableOpacity>
-                        </XStack>
-                    </YStack>
+                    {/* Grid of key items with checkboxes */}
+                    <ScrollView style={{ height: screenHeight * 0.5 }}>
+                        <YStack gap={12}>
+                            {KEY_ITEMS.map((item, index) => (
+                                <TouchableOpacity key={index} onPress={() => handleItemToggle(index)}>
+                                    <Card
+                                        bg='white'
+                                        width="100%"
+                                        p={16}
+                                        style={{
+                                            borderWidth: selectedItemIndex === index ? 2 : 0,
+                                            borderColor: '#5A9FD4'
+                                        }}
+                                    >
+                                        <XStack items="center" gap={16}>
+                                            <Image source={item.image} width={50} height={60} />
+                                            <YStack flex={1}>
+                                                <H4 color='#404040'>{item.name}</H4>
+                                            </YStack>
+                                            <YStack w={24} h={24} bg={selectedItemIndex === index ? '#5A9FD4' : 'white'}
+                                                borderWidth={2} borderColor='#5A9FD4' borderRadius={12}
+                                                items="center" justifyContent="center">
+                                                {selectedItemIndex === index && <Check color='white' size={16} />}
+                                            </YStack>
+                                        </XStack>
+                                    </Card>
+                                </TouchableOpacity>
+                            ))}
+                        </YStack>
+                    </ScrollView>
+                    {/* Icon stack */}
+                    <XStack gap={16} justifyContent="center" py={20}>
+                        <TouchableOpacity onPress={handleDicePress}>
+                            <Dices color='#404040' size={100} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleConfirmPress}>
+                            <CheckCircle2 color='#5A9FD4' size={100} />
+                        </TouchableOpacity>
+                    </XStack>
+                </YStack>
             </YStack>
         </YStack>
     );

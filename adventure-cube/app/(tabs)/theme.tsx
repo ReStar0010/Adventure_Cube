@@ -13,7 +13,7 @@ export default function ThemeScreen() {
     const router = useRouter();
     const [currentStory, setCurrentStory] = useState<Story | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
-    
+
     const { width: screenWidth } = Dimensions.get('window');
     const { height: screenHeight } = Dimensions.get('window');
     const imageWidth = screenWidth * 0.6; // Reduced to 60% to account for padding and gaps
@@ -75,7 +75,9 @@ export default function ThemeScreen() {
         }
     };
 
-    const handleBackPress = () => {
+    const handleBackPress = async () => {
+        // User is going back from theme selection - just navigate back
+        // Don't clear cache as they might want to continue editing
         router.back();
     };
 
