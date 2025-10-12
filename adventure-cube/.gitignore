@@ -44,3 +44,6 @@ app-example
 
 # prompt md just for local use
 prompts.md
+
+# tamagui
+.tamagui/
