@@ -1,16 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { YStack, H2, Text, Button } from 'tamagui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import StoryGenerationExample from '@/components/examples/StoryGenerationExample';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [showExample, setShowExample] = useState(false);
 
   const handleGetStarted = () => {
     router.push('/library');
   };
+
+  if (showExample) {
+    return <StoryGenerationExample />;
+  }
 
   return (
     <YStack flex={1} bg='#d9d9d9' style={{ paddingTop: insets.top + 10 }} alignItems='center' justifyContent='center' px={16}>
@@ -40,6 +46,16 @@ export default function HomeScreen() {
           mt={20}
         >
           Get Started
+        </Button>
+
+        <Button
+          onPress={() => setShowExample(true)}
+          bg='#6B5B95'
+          color='white'
+          size="$4"
+          mt={10}
+        >
+          Test Backend Integration
         </Button>
       </YStack>
     </YStack>
