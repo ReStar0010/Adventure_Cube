@@ -5,6 +5,26 @@ import random
 from django.conf import settings
 
 
+# Character personalities mapping (Traditional Chinese)
+CHARACTER_PERSONALITIES = {
+    'angel': ['恐高症的守護者', '愛抱怨的治癒者', '不喜歡甜食的使者', '完美主義的搗蛋鬼', '熱愛地獄搖滾的聖潔者'],
+    'cat': ['親人的獨行俠', '愛水的貓', '懶惰的運動健將', '愛說話的安靜者', '潔癖的冒險家'],
+    'dog': ['害怕小東西的勇士', '愛乾淨的流浪者', '嚴肅的喜劇演員', '愛說悄悄話的說書人', '喜歡收集襪子的發明家'],
+    'dragon': ['有鱗的愛哭鬼', '怕高的飛行員', '愛乾淨的收藏家', '素食主義的肉食者', '安靜的吟遊詩人'],
+    'elf': ['懶惰的自然守護者', '不善言辭的魔法師', '喜愛噪音的聽覺者', '沒有方向感的嚮導', '不相信魔法的精靈'],
+    'fairy': ['力大無窮的笨手笨腳者', '沒自信的治癒者', '愛吃垃圾食物的仙子', '充滿熱情的書呆子', '熱愛搖滾樂的舞蹈家'],
+    'knight': ['害怕黑暗的守護者', '沉穩的冒失鬼', '嚴肅的廚師', '愛說悄悄話的演講者', '充滿熱情的書呆子'],
+    'lion': ['沒自信的領導者', '愛哭的大隻佬', '膽小的勇士', '素食主義的肉食者', '愛說話的安靜者'],
+    'mouse': ['膽小的冒險家', '強壯的膽小鬼', '愛乾淨的修理工', '充滿好奇心的智者', '喜歡捉弄人的小不點'],
+    'prince': ['熱愛烹飪的王子', '害怕馬的王子', '喜歡園藝的王子', '害羞的演說家', '夢想成為騎士的詩人'],
+    'princess': ['討厭裙子的公主', '夢想成為發明家的公主', '力氣很大的公主', '害怕青蛙的公主', '喜歡睡懶覺的公主'],
+    'robot': ['渴望感受情感的邏輯機器人', '愛講冷笑話的計算機', '害怕水的清潔機器人', '夢想成為蝴蝶的工業機器人', '喜歡收集羽毛的守衛'],
+    'unicorn': ['笨手笨腳的獨角獸', '不會飛的獨角獸', '愛吃鹹食的獨角獸', '毛色是灰色的獨角獸', '討厭彩虹的獨角獸'],
+    'witch': ['喜歡收集閃亮東西的善良女巫', '討厭飛行的女巫', '健忘的女巫', '害怕黑貓的女巫', '只會做治療藥水的女巫'],
+    'wizard': ['記憶力很差的偉大巫師', '害怕自己鬍子的巫師', '討厭魔法的巫師', '喜歡用科學做實驗的巫師', '夢想成為歌手的巫師']
+}
+
+
 # Story templates organized by theme
 STORY_TEMPLATES = {
     'caring': [
@@ -120,13 +140,16 @@ class StoryGenerator:
         
     def generate_story(self, theme, child_name=None, child_age=None, **kwargs):
         """
-        Generate a story based on the theme and child information.
+        Generate a story based on the theme, character, background, key items, and child information.
         
         Args:
             theme: Story theme (caring, courage, friendship, honest, nature, share)
             child_name: Optional child's name (default: "Your Hero")
             child_age: Optional child's age (default: 5)
-            **kwargs: Additional options for future use
+            character: Optional character name
+            background: Optional background name
+            key_items: Optional list of key item names
+            **kwargs: Additional options
             
         Returns:
             dict: {
@@ -142,9 +165,20 @@ class StoryGenerator:
         else:
             return self._generate_with_template(theme, child_name, child_age, **kwargs)
     
+    def _get_character_personalities(self, character_name):
+        """Get personality traits for a character."""
+        if not character_name:
+            return []
+        
+        # Normalize character name to lowercase for lookup
+        char_key = character_name.lower().strip()
+        return CHARACTER_PERSONALITIES.get(char_key, [])
+    
     def _generate_with_template(self, theme, child_name, child_age, **kwargs):
         """
         Generate story using pre-defined templates.
+        Note: Templates are simple and don't use character, background, or key items.
+        For full customization with all elements, use LLM providers.
         """
         # Use default values if not provided
         name = child_name or "Your Hero"
@@ -172,12 +206,7 @@ class StoryGenerator:
     
     def _generate_with_openai(self, theme, child_name, child_age, **kwargs):
         """
-        Generate story using OpenAI API.
-        
-        To implement:
-        1. pip install openai
-        2. Use OpenAI chat completion with child-appropriate prompts
-        3. Ensure content filtering for child safety
+        Generate story using OpenAI API with all story elements.
         """
         try:
             import openai
@@ -187,13 +216,35 @@ class StoryGenerator:
             age = child_age or 5
             age = max(3, min(age, 10))
             
-            prompt = f"""Write a short, age-appropriate children's story (300-800 words) about {name}, a {age}-year-old child.
+            character = kwargs.get('character', 'an adventurer')
+            background = kwargs.get('background', 'a magical place')
+            key_items = kwargs.get('key_items', [])
+            
+            # Get character personalities
+            personalities = self._get_character_personalities(character)
+            
+            items_text = ", ".join(key_items) if key_items else "no special items"
+            
+            # Build personality description
+            personality_text = ""
+            if personalities:
+                personality_list = "、".join(personalities)
+                personality_text = f"\n角色性格特質：{personality_list}"
+            
+            prompt = f"""Write a short, age-appropriate children's story (300-800 words) incorporating all these elements:
 
+Character: {character}{personality_text}
+Setting/Background: {background}
 Theme: {theme}
+Key Items in the story: {items_text}
 
 The story should:
+- Feature {character} as the main character
+- Showcase the character's unique personality traits through their actions, decisions, and interactions
+- Take place in {background}
+- Incorporate the key items naturally into the plot
+- Be centered around the theme of {theme}
 - Be positive and educational
-- Include a clear lesson about {theme}
 - Be appropriate for ages 4-8
 - Have a satisfying ending
 - Be engaging and fun to read
@@ -237,11 +288,7 @@ Title: [Story Title]
     
     def _generate_with_anthropic(self, theme, child_name, child_age, **kwargs):
         """
-        Generate story using Anthropic Claude API.
-        
-        To implement:
-        1. pip install anthropic
-        2. Use Claude with child-appropriate prompts
+        Generate story using Anthropic Claude API with all story elements.
         """
         try:
             import anthropic
@@ -252,13 +299,35 @@ Title: [Story Title]
             age = child_age or 5
             age = max(3, min(age, 10))
             
-            prompt = f"""Write a short, age-appropriate children's story (300-800 words) about {name}, a {age}-year-old child.
+            character = kwargs.get('character', 'an adventurer')
+            background = kwargs.get('background', 'a magical place')
+            key_items = kwargs.get('key_items', [])
+            
+            # Get character personalities
+            personalities = self._get_character_personalities(character)
+            
+            items_text = ", ".join(key_items) if key_items else "no special items"
+            
+            # Build personality description
+            personality_text = ""
+            if personalities:
+                personality_list = "、".join(personalities)
+                personality_text = f"\n角色性格特質：{personality_list}"
+            
+            prompt = f"""Write a short, age-appropriate children's story (300-800 words) incorporating all these elements:
 
+Character: {character}{personality_text}
+Setting/Background: {background}
 Theme: {theme}
+Key Items in the story: {items_text}
 
 The story should:
+- Feature {character} as the main character
+- Showcase the character's unique personality traits through their actions, decisions, and interactions
+- Take place in {background}
+- Incorporate the key items naturally into the plot
+- Be centered around the theme of {theme}
 - Be positive and educational
-- Include a clear lesson about {theme}
 - Be appropriate for ages 4-8
 - Have a satisfying ending
 - Be engaging and fun to read
