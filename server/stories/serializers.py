@@ -12,7 +12,7 @@ class StorySerializer(serializers.ModelSerializer):
         model = Story
         fields = [
             'id', 'title', 'body', 'theme', 'child_name', 'child_age',
-            'model_source', 'language', 'character', 'background', 'created_at'
+            'model_source', 'language', 'character', 'background', 'key_items', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
 
@@ -26,6 +26,11 @@ class StoryGenerateRequestSerializer(serializers.Serializer):
     language = serializers.CharField(required=False, default='en', max_length=10)
     character = serializers.CharField(required=False, allow_blank=True, max_length=100)
     background = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    key_items = serializers.ListField(
+        child=serializers.CharField(), 
+        required=False, 
+        allow_empty=True
+    )
 
 
 class AudioFileSerializer(serializers.ModelSerializer):

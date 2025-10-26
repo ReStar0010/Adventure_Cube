@@ -17,6 +17,7 @@ interface UseStoryGenerationResult {
         theme: StoryAsset,
         character: StoryAsset,
         background: StoryAsset,
+        keyItems?: StoryAsset[],
         childName?: string,
         childAge?: number
     ) => Promise<void>;
@@ -34,6 +35,7 @@ export function useStoryGeneration(): UseStoryGenerationResult {
         theme: StoryAsset,
         character: StoryAsset,
         background: StoryAsset,
+        keyItems?: StoryAsset[],
         childName?: string,
         childAge?: number
     ) => {
@@ -46,6 +48,7 @@ export function useStoryGeneration(): UseStoryGenerationResult {
                 theme,
                 character,
                 background,
+                keyItems,
                 childName,
                 childAge
             );
