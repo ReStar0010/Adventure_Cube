@@ -48,7 +48,8 @@ class StoryViewSet(viewsets.ModelViewSet):
             "child_age": 6 (optional),
             "language": "en" (optional),
             "character": "Princess" (optional),
-            "background": "Castle" (optional)
+            "background": "Castle" (optional),
+            "key_items": ["Key1", "Key2"] (optional)
         }
         
         Returns: Story object with generated content
@@ -69,7 +70,10 @@ class StoryViewSet(viewsets.ModelViewSet):
             story_data = generator.generate_story(
                 theme=data['theme'],
                 child_name=data.get('child_name'),
-                child_age=data.get('child_age')
+                child_age=data.get('child_age'),
+                character=data.get('character'),
+                background=data.get('background'),
+                key_items=data.get('key_items')
             )
             
             # Create Story instance
@@ -82,7 +86,8 @@ class StoryViewSet(viewsets.ModelViewSet):
                 model_source=story_data['model_source'],
                 language=data.get('language', 'en'),
                 character=data.get('character'),
-                background=data.get('background')
+                background=data.get('background'),
+                key_items=data.get('key_items', [])
             )
             
             result_serializer = StorySerializer(story)

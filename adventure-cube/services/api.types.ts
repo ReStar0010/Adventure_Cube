@@ -13,6 +13,7 @@ export interface BackendStory {
     language: string;
     character?: string;
     background?: string;
+    key_items?: string[];
     created_at: string;
 }
 
@@ -23,6 +24,7 @@ export interface StoryGenerateRequest {
     language?: string;
     character?: string;
     background?: string;
+    key_items?: string[];
 }
 
 export interface AudioFile {

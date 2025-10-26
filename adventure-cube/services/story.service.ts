@@ -15,6 +15,7 @@ export class StoryService {
         theme: StoryAsset,
         character: StoryAsset,
         background: StoryAsset,
+        keyItems?: StoryAsset[],
         childName?: string,
         childAge?: number
     ): Promise<{ story: Story; backendData: BackendStory }> {
@@ -27,6 +28,7 @@ export class StoryService {
                 language: 'en',
                 character: character.name,
                 background: background.name,
+                key_items: keyItems?.map(item => item.name),
             };
 
             // Call backend API
@@ -39,7 +41,7 @@ export class StoryService {
                 background,
                 character,
                 theme,
-                [] // keyItems - can be added later
+                keyItems || []
             );
 
             // Set the generated story text

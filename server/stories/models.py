@@ -26,6 +26,7 @@ class Story(models.Model):
     language = models.CharField(max_length=10, default='en')
     character = models.CharField(max_length=100, blank=True, null=True)
     background = models.CharField(max_length=100, blank=True, null=True)
+    key_items = models.JSONField(default=list, blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     
     class Meta:
