@@ -12,6 +12,7 @@ gTTS>=2.3.2
 # Optional: Advanced LLM/TTS providers (uncomment when needed)
 # openai>=1.0.0
 # anthropic>=0.7.0
+google-generativeai>=0.3.0
 # elevenlabs>=0.2.0
 
 # Utilities
