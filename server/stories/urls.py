@@ -13,4 +13,9 @@ urlpatterns = [
     path('tts/generate/', views.generate_audio, name='generate-audio'),
     path('images/', views.list_images, name='list-images'),
     path('themes/', views.get_themes, name='get-themes'),
+    
+    # Authentication endpoints
+    path('auth/register/', views.register_user, name='register'),
+    path('auth/login/', views.login_user, name='login'),
+    path('auth/logout/', views.logout_user, name='logout'),
 ]

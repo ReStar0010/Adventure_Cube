@@ -17,10 +17,32 @@ import type {
 class ApiClient {
     private baseUrl: string;
     private timeout: number;
+    private authToken: string | null = null;
 
     constructor() {
         this.baseUrl = getBaseUrl();
         this.timeout = API_CONFIG.TIMEOUT;
+    }
+
+    /**
+     * Set authentication token
+     */
+    setToken(token: string) {
+        this.authToken = token;
+    }
+
+    /**
+     * Clear authentication token
+     */
+    clearToken() {
+        this.authToken = null;
+    }
+
+    /**
+     * Get current token
+     */
+    getToken(): string | null {
+        return this.authToken;
     }
 
     /**
@@ -36,12 +58,19 @@ class ApiClient {
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                ...options.headers as Record<string, string>,
+            };
+
+            // Add authorization header if token exists
+            if (this.authToken) {
+                headers['Authorization'] = `Token ${this.authToken}`;
+            }
+
             const response = await fetch(url, {
                 ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers,
-                },
+                headers,
                 signal: controller.signal,
             });
 
@@ -137,6 +166,38 @@ class ApiClient {
      */
     setBaseUrl(url: string) {
         this.baseUrl = url;
+    }
+
+    /**
+     * Auth API Methods
+     */
+
+    async register(username: string, password: string, email?: string): Promise<{ user: any; token: string }> {
+        return this.fetch(API_CONFIG.ENDPOINTS.AUTH_REGISTER, {
+            method: 'POST',
+            body: JSON.stringify({
+                username,
+                password,
+                password2: password,
+                email,
+            }),
+        });
+    }
+
+    async login(username: string, password: string): Promise<{ user: any; token: string }> {
+        return this.fetch(API_CONFIG.ENDPOINTS.AUTH_LOGIN, {
+            method: 'POST',
+            body: JSON.stringify({
+                username,
+                password,
+            }),
+        });
+    }
+
+    async logout(): Promise<{ message: string }> {
+        return this.fetch(API_CONFIG.ENDPOINTS.AUTH_LOGOUT, {
+            method: 'POST',
+        });
     }
 }
 

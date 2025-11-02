@@ -7,6 +7,8 @@ export { apiClient } from './api.client';
 export { API_CONFIG, getBaseUrl } from './api.config';
 export { StoryService } from './story.service';
 export { AssetsService } from './assets.service';
+export { AuthService } from './auth.service';
+export type { AuthUser } from './auth.service';
 
 export type {
     BackendStory,
