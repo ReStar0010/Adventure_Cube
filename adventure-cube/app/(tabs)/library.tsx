@@ -240,26 +240,11 @@ export default function LibraryScreen() {
     );
   };
 
-  const handleLogout = async () => {
-    Alert.alert("登出", "確定要登出嗎？", [
-      { text: "取消", style: "cancel" },
-      {
-        text: "登出",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await AuthService.logout();
-            setIsAuthenticated(false);
-            setCurrentUser(null);
-            setStories([]);
-            Alert.alert("成功", "已登出");
-          } catch (error) {
-            console.error("Logout failed:", error);
-            Alert.alert("錯誤", "登出時發生錯誤");
-          }
-        },
-      },
-    ]);
+  const handleLogout = async () => { 
+    await AuthService.logout();
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setStories([]);
   };
 
   const renderStoryCard = (story: Story) => (
@@ -393,21 +378,10 @@ export default function LibraryScreen() {
               </H4>
             )}
           </YStack>
-          <TouchableOpacity onPress={handleLogout}>
-            <XStack
-              gap={6}
-              alignItems="center"
-              bg="#f5f5f5"
-              px={12}
-              py={8}
-              borderRadius={8}
-            >
-              <LogOut size={16} color="#666" />
-              <Text color="#666" fontSize={14}>
-                登出
-              </Text>
-            </XStack>
-          </TouchableOpacity>
+          <Button onPress={handleLogout}>
+            <LogOut size={16} color="#666" />
+            登出
+          </Button>
         </XStack>
       </YStack>
 

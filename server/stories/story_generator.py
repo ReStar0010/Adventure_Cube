@@ -157,11 +157,15 @@ class StoryGenerator:
                 'body': str,
                 'model_source': 'online' or 'offline'
             }
+        
+        Supported LLM providers: 'openai', 'anthropic', 'gemini', 'template'
         """
         if self.provider == 'openai' and settings.OPENAI_API_KEY:
             return self._generate_with_openai(theme, child_name, child_age, **kwargs)
         elif self.provider == 'anthropic' and settings.ANTHROPIC_API_KEY:
             return self._generate_with_anthropic(theme, child_name, child_age, **kwargs)
+        elif self.provider == 'gemini' and settings.GEMINI_API_KEY:
+            return self._generate_with_gemini(theme, child_name, child_age, **kwargs)
         else:
             return self._generate_with_template(theme, child_name, child_age, **kwargs)
     
@@ -357,4 +361,80 @@ Please provide the story with a title."""
             
         except Exception as e:
             print(f"Anthropic generation failed: {e}. Falling back to template.")
+            return self._generate_with_template(theme, child_name, child_age, **kwargs)
+    
+    def _generate_with_gemini(self, theme, child_name, child_age, **kwargs):
+        """
+        Generate story using Google Gemini API with all story elements.
+        """
+        try:
+            import google.generativeai as genai
+            
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            
+            name = child_name or "Your Hero"
+            age = child_age or 5
+            age = max(3, min(age, 10))
+            
+            character = kwargs.get('character', 'an adventurer')
+            background = kwargs.get('background', 'a magical place')
+            key_items = kwargs.get('key_items', [])
+            
+            # Get character personalities
+            personalities = self._get_character_personalities(character)
+            
+            items_text = ", ".join(key_items) if key_items else "no special items"
+            
+            # Build personality description
+            personality_text = ""
+            if personalities:
+                personality_list = "、".join(personalities)
+                personality_text = f"\n角色性格特質：{personality_list}"
+            
+            prompt = f"""Write a short, age-appropriate children's story (300-800 words) incorporating all these elements:
+
+Character: {character}{personality_text}
+Setting/Background: {background}
+Theme: {theme}
+Key Items in the story: {items_text}
+
+The story should:
+- Feature {character} as the main character
+- Showcase the character's unique personality traits through their actions, decisions, and interactions
+- Take place in {background}
+- Incorporate the key items naturally into the plot
+- Be centered around the theme of {theme}
+- Be positive and educational
+- Be appropriate for ages 4-8
+- Have a satisfying ending
+- Be engaging and fun to read
+
+Please provide the story with a title. Format the response as:
+Title: [Story Title]
+
+[Story body]"""
+            
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            response = model.generate_content(prompt)
+            
+            content = response.text.strip()
+            
+            # Parse title and body
+            if "Title:" in content:
+                parts = content.split("\n", 2)
+                title = parts[0].replace("Title:", "").strip()
+                body = parts[2].strip() if len(parts) > 2 else parts[1].strip()
+            else:
+                lines = content.split("\n")
+                title = lines[0].strip().replace("#", "").strip()
+                body = "\n".join(lines[1:]).strip()
+            
+            return {
+                'title': title,
+                'body': body,
+                'model_source': 'online'
+            }
+            
+        except Exception as e:
+            print(f"Gemini generation failed: {e}. Falling back to template.")
             return self._generate_with_template(theme, child_name, child_age, **kwargs)
