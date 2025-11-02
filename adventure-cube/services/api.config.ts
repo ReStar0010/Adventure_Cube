@@ -32,6 +32,11 @@ export const API_CONFIG = {
         // Assets endpoints
         IMAGES: '/images/',
         THEMES: '/themes/',
+
+        // Auth endpoints
+        AUTH_REGISTER: '/auth/register/',
+        AUTH_LOGIN: '/auth/login/',
+        AUTH_LOGOUT: '/auth/logout/',
     }
 };
 
@@ -40,9 +45,23 @@ export const API_CONFIG = {
  */
 export const getBaseUrl = (): string => {
     if (__DEV__) {
-        // You can detect platform here if needed
-        // For now, return the default BASE_URL
-        return API_CONFIG.BASE_URL;
+        // Web browser
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+            return 'http://localhost:8000/api';
+        }
+        
+        // React Native - Android
+        try {
+            const { Platform } = require('react-native');
+            return Platform.OS === 'android' 
+                ? 'http://10.0.2.2:8000/api'
+                : 'http://localhost:8000/api';
+        } catch {
+            // Not React Native, likely web
+            return 'http://localhost:8000/api';
+        }
     }
+    
+    // Production
     return API_CONFIG.BASE_URL;
 };

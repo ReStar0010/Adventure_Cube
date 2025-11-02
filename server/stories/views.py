@@ -2,19 +2,25 @@
 API Views for Story generation, TTS, and image serving.
 """
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.http import FileResponse, JsonResponse
 from django.conf import settings
 from pathlib import Path
 import os
+
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
 
 from .models import Story, AudioFile
 from .serializers import (
     StorySerializer,
     StoryGenerateRequestSerializer,
     AudioFileSerializer,
-    TTSRequestSerializer
+    TTSRequestSerializer,
+    UserRegisterSerializer,
+    UserLoginSerializer
 )
 from .story_generator import StoryGenerator
 from .tts_service import TTSService
@@ -25,7 +31,7 @@ class StoryViewSet(viewsets.ModelViewSet):
     ViewSet for Story CRUD operations.
     
     Endpoints:
-    - GET /api/stories/ - List all stories
+    - GET /api/stories/ - List all stories (user's own)
     - POST /api/stories/ - Create/save a story
     - GET /api/stories/{id}/ - Retrieve a story
     - PUT/PATCH /api/stories/{id}/ - Update a story
@@ -33,8 +39,16 @@ class StoryViewSet(viewsets.ModelViewSet):
     - POST /api/stories/generate/ - Generate a new story
     """
     
-    queryset = Story.objects.all()
     serializer_class = StorySerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return only stories belonging to the current user."""
+        return Story.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        """Automatically set the user when creating a story."""
+        serializer.save(user=self.request.user)
     
     @action(detail=False, methods=['post'])
     def generate(self, request):
@@ -78,6 +92,7 @@ class StoryViewSet(viewsets.ModelViewSet):
             
             # Create Story instance
             story = Story.objects.create(
+                user=request.user,
                 title=story_data['title'],
                 body=story_data['body'],
                 theme=data['theme'],
@@ -101,6 +116,7 @@ class StoryViewSet(viewsets.ModelViewSet):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def generate_audio(request):
     """
     Generate audio (TTS) for a story.
@@ -127,6 +143,13 @@ def generate_audio(request):
     try:
         # Get the story
         story = Story.objects.get(id=data['story_id'])
+        
+        # Verify ownership
+        if story.user != request.user:
+            return Response(
+                {'error': 'You do not have permission to generate audio for this story'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         # Check if audio already exists for this language
         existing_audio = AudioFile.objects.filter(
@@ -175,6 +198,7 @@ def generate_audio(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def list_images(request):
     """
     List available images for stories.
@@ -235,6 +259,7 @@ def list_images(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_themes(request):
     """
     Get available story themes.
@@ -256,3 +281,117 @@ def get_themes(request):
     ]
     
     return Response({'themes': themes})
+
+
+# Authentication endpoints
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    """
+    Register a new user.
+    
+    POST /api/auth/register/
+    Body: {
+        "username": "user",
+        "password": "pass123",
+        "password2": "pass123",
+        "email": "user@example.com" (optional)
+    }
+    
+    Returns: User object and authentication token
+    """
+    serializer = UserRegisterSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(
+            {'error': 'Invalid registration data', 'details': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        user = serializer.save()
+        # Create authentication token
+        token, created = Token.objects.get_or_create(user=user)
+        
+        return Response({
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            },
+            'token': token.key
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response(
+            {'error': 'Registration failed', 'details': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_user(request):
+    """
+    Login a user.
+    
+    POST /api/auth/login/
+    Body: {
+        "username": "user",
+        "password": "pass123"
+    }
+    
+    Returns: User object and authentication token
+    """
+    serializer = UserLoginSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(
+            {'error': 'Invalid login data', 'details': serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    username = serializer.validated_data['username']
+    password = serializer.validated_data['password']
+    
+    user = authenticate(username=username, password=password)
+    
+    if user is None:
+        return Response(
+            {'error': 'Invalid credentials'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Get or create token
+    token, created = Token.objects.get_or_create(user=user)
+    
+    return Response({
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email
+        },
+        'token': token.key
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_user(request):
+    """
+    Logout a user by deleting their token.
+    
+    POST /api/auth/logout/
+    
+    Requires: Authorization header with token
+    """
+    try:
+        # Delete the user's token
+        request.user.auth_token.delete()
+        return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {'error': 'Logout failed', 'details': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

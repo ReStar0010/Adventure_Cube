@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'stories',
 ]
@@ -109,6 +110,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
 
 # CORS settings - adjust for production
@@ -116,9 +123,10 @@ CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
 
 # LLM Configuration
-LLM_PROVIDER = os.environ.get('LLM_PROVIDER', 'template')  # 'openai', 'anthropic', 'template'
+LLM_PROVIDER = os.environ.get('LLM_PROVIDER', 'template')  # 'openai', 'anthropic', 'gemini', 'template'
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
 # TTS Configuration
 TTS_PROVIDER = os.environ.get('TTS_PROVIDER', 'gtts')  # 'gtts', 'openai', 'elevenlabs'
