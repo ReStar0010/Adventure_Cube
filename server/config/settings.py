@@ -131,9 +131,18 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
 # TTS Configuration
-TTS_PROVIDER = os.environ.get('TTS_PROVIDER', 'gtts')  # 'gtts', 'openai', 'elevenlabs'
+TTS_PROVIDER = os.environ.get('TTS_PROVIDER', 'gtts')  # 'gtts', 'vertex_ai', 'azure'
 TTS_CACHE_ENABLED = True
 TTS_CACHE_DIR = MEDIA_ROOT / 'tts_cache'
+
+# Google Vertex AI TTS Configuration
+VERTEX_AI_PROJECT_ID = os.environ.get('VERTEX_AI_PROJECT_ID', '')
+VERTEX_AI_LOCATION = os.environ.get('VERTEX_AI_LOCATION', 'us-central1')
+# Set GOOGLE_APPLICATION_CREDENTIALS environment variable to path of service account JSON file
+
+# Azure Speech Service Configuration
+AZURE_SPEECH_KEY = os.environ.get('AZURE_SPEECH_KEY', '')
+AZURE_SPEECH_REGION = os.environ.get('AZURE_SPEECH_REGION', '')
 
 # Story configuration
 STORY_MIN_WORDS = 300

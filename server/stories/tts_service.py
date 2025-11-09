@@ -45,10 +45,10 @@ class TTSService:
         # Generate audio based on provider
         if self.provider == 'gtts':
             audio_content = self._generate_with_gtts(text, language)
-        elif self.provider == 'openai':
-            audio_content = self._generate_with_openai(text, voice)
-        elif self.provider == 'elevenlabs':
-            audio_content = self._generate_with_elevenlabs(text, voice)
+        elif self.provider == 'vertex_ai':
+            audio_content = self._generate_with_vertex_ai(text, language, voice)
+        elif self.provider == 'azure':
+            audio_content = self._generate_with_azure(text, language, voice)
         else:
             raise ValueError(f"Unknown TTS provider: {self.provider}")
         
@@ -82,68 +82,112 @@ class TTSService:
             print(f"gTTS generation failed: {e}")
             return None
     
-    def _generate_with_openai(self, text, voice=None):
+    def _generate_with_vertex_ai(self, text, language='en', voice=None):
         """
-        Generate audio using OpenAI TTS API.
-        High quality, realistic voices.
+        Generate audio using Google Vertex AI Text-to-Speech API.
+        High quality, natural-sounding voices with neural network models.
         
         To implement:
-        1. pip install openai
-        2. Use openai.audio.speech.create()
+        1. pip install google-cloud-texttospeech
+        2. Set GOOGLE_APPLICATION_CREDENTIALS environment variable or configure credentials
+        3. Set VERTEX_AI_PROJECT_ID and VERTEX_AI_LOCATION in settings
         """
         try:
-            import openai
+            from google.cloud import texttospeech
             from io import BytesIO
             
-            openai.api_key = settings.OPENAI_API_KEY
+            # Initialize client
+            client = texttospeech.TextToSpeechClient()
             
-            # Available voices: alloy, echo, fable, onyx, nova, shimmer
-            voice_name = voice or 'nova'
+            # Configure voice selection
+            # Default to child-friendly voices
+            voice_name = voice or 'en-US-Neural2-D'  # Child-friendly voice
+            language_code = language if len(language) == 5 else f"{language}-US"
             
-            response = openai.audio.speech.create(
-                model="tts-1",
-                voice=voice_name,
-                input=text
+            # Set up the input text
+            synthesis_input = texttospeech.SynthesisInput(text=text)
+            
+            # Configure voice parameters
+            voice_config = texttospeech.VoiceSelectionParams(
+                language_code=language_code,
+                name=voice_name,
+                ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
             )
             
-            audio_buffer = BytesIO()
-            for chunk in response.iter_bytes():
-                audio_buffer.write(chunk)
-            audio_buffer.seek(0)
+            # Configure audio output
+            audio_config = texttospeech.AudioConfig(
+                audio_encoding=texttospeech.AudioEncoding.MP3,
+                speaking_rate=1.0,
+                pitch=0.0
+            )
             
+            # Perform the text-to-speech request
+            response = client.synthesize_speech(
+                input=synthesis_input,
+                voice=voice_config,
+                audio_config=audio_config
+            )
+            
+            # Convert to ContentFile
+            audio_buffer = BytesIO(response.audio_content)
             return ContentFile(audio_buffer.read(), name='story_audio.mp3')
             
         except Exception as e:
-            print(f"OpenAI TTS generation failed: {e}. Falling back to gTTS.")
-            return self._generate_with_gtts(text, 'en')
+            print(f"Vertex AI TTS generation failed: {e}. Falling back to gTTS.")
+            return self._generate_with_gtts(text, language)
     
-    def _generate_with_elevenlabs(self, text, voice=None):
+    def _generate_with_azure(self, text, language='en', voice=None):
         """
-        Generate audio using ElevenLabs API.
-        Premium quality, very realistic voices.
+        Generate audio using Azure Cognitive Services Text-to-Speech API.
+        High quality, natural-sounding voices with SSML support.
         
         To implement:
-        1. pip install elevenlabs
-        2. Configure voice IDs
+        1. pip install azure-cognitiveservices-speech
+        2. Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in settings
         """
         try:
-            from elevenlabs import generate, save
+            import azure.cognitiveservices.speech as speechsdk
             from io import BytesIO
             
-            voice_name = voice or "Bella"  # Child-friendly voice
+            # Get Azure credentials from settings
+            azure_key = getattr(settings, 'AZURE_SPEECH_KEY', None)
+            azure_region = getattr(settings, 'AZURE_SPEECH_REGION', None)
             
-            audio = generate(
-                text=text,
-                voice=voice_name,
-                model="eleven_monolingual_v1"
+            if not azure_key or not azure_region:
+                raise ValueError("Azure Speech credentials not configured")
+            
+            # Configure speech synthesizer
+            speech_config = speechsdk.SpeechConfig(
+                subscription=azure_key,
+                region=azure_region
             )
             
-            audio_buffer = BytesIO(audio)
-            return ContentFile(audio_buffer.read(), name='story_audio.mp3')
+            # Set language and voice
+            language_code = language if len(language) == 5 else f"{language}-US"
+            voice_name = voice or 'en-US-AriaNeural'  # Child-friendly voice
+            
+            speech_config.speech_synthesis_language = language_code
+            speech_config.speech_synthesis_voice_name = voice_name
+            
+            # Create synthesizer without audio config (will use result.audio_data)
+            synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=None)
+            
+            # Synthesize speech
+            result = synthesizer.speak_text_async(text).get()
+            
+            if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                # Convert audio data to ContentFile
+                audio_buffer = BytesIO(result.audio_data)
+                return ContentFile(audio_buffer.read(), name='story_audio.mp3')
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                cancellation_details = speechsdk.CancellationDetails(result)
+                raise Exception(f"Azure TTS canceled: {cancellation_details.reason}")
+            else:
+                raise Exception(f"Azure TTS failed: {result.reason}")
             
         except Exception as e:
-            print(f"ElevenLabs TTS generation failed: {e}. Falling back to gTTS.")
-            return self._generate_with_gtts(text, 'en')
+            print(f"Azure TTS generation failed: {e}. Falling back to gTTS.")
+            return self._generate_with_gtts(text, language)
     
     def _get_cache_key(self, text, language, voice):
         """Generate cache key from text and parameters."""
