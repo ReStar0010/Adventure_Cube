@@ -241,12 +241,17 @@ export default function LibraryScreen() {
   };
 
   const handleLogout = async () => { 
-    await AuthService.logout();
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-    setStories([]);
-    // Navigate to login page
-    router.replace("/login");
+    try {
+      await AuthService.logout();
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setStories([]);
+      // Navigate to welcome page
+      router.replace("/welcome");
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Error', 'Failed to logout');
+    }
   };
 
   const renderStoryCard = (story: Story) => (

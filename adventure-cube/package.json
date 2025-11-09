@@ -20,6 +20,7 @@
     "@tamagui/config": "^1.132.23",
     "@tamagui/lucide-icons": "^1.132.23",
     "@tamagui/metro-plugin": "^1.132.23",
+    "@tamagui/portal": "^1.132.23",
     "expo": "^54.0.23",
     "expo-constants": "~18.0.8",
     "expo-font": "~14.0.8",

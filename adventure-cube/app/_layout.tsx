@@ -5,6 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router'
 import { useColorScheme, ActivityIndicator, View } from 'react-native'
 import { TamaguiProvider } from 'tamagui'
+import { PortalProvider } from '@tamagui/portal'
 
 import { tamaguiConfig } from '../tamagui.config'
 import { AuthService } from '../services'
@@ -19,6 +20,14 @@ export default function RootLayout() {
   useEffect(() => {
     checkAuth()
   }, [])
+
+  // Re-check auth when navigating to welcome (to handle logout)
+  useEffect(() => {
+    if (!isLoading && segments[0] === 'welcome') {
+      checkAuth()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [segments])
 
   useEffect(() => {
     if (isLoading) return
@@ -57,14 +66,16 @@ export default function RootLayout() {
 
   return (
     <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme!}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-      </ThemeProvider>
+      <PortalProvider shouldAddRootHost>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="welcome" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+        </ThemeProvider>
+      </PortalProvider>
     </TamaguiProvider>
   )
 }
