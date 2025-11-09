@@ -9,11 +9,17 @@ django-cors-headers>=4.0.0
 # Text-to-Speech
 gTTS>=2.3.2
 
-# Optional: Advanced LLM/TTS providers (uncomment when needed)
+# Optional: Advanced TTS providers (uncomment when needed)
+# Google Vertex AI Text-to-Speech
+google-cloud-texttospeech>=2.14.0
+
+# Azure Cognitive Services Speech
+azure-cognitiveservices-speech>=1.32.0
+
+# Optional: Advanced LLM providers (uncomment when needed)
 # openai>=1.0.0
 # anthropic>=0.7.0
 google-generativeai>=0.3.0
-# elevenlabs>=0.2.0
 
 # Utilities
 python-dotenv>=1.0.0
