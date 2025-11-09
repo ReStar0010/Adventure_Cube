@@ -245,6 +245,8 @@ export default function LibraryScreen() {
     setIsAuthenticated(false);
     setCurrentUser(null);
     setStories([]);
+    // Navigate to login page
+    router.replace("/login");
   };
 
   const renderStoryCard = (story: Story) => (
@@ -310,56 +312,14 @@ export default function LibraryScreen() {
     </Card>
   );
 
-  // Show loading spinner while checking auth
-  if (checkingAuth) {
+  // Show loading spinner while checking auth or loading stories
+  if (checkingAuth || (loading && stories.length === 0)) {
     return (
       <YStack flex={1} bg="#d9d9d9" justifyContent="center" alignItems="center">
         <ActivityIndicator size="large" color="#5A9FD4" />
         <H4 color="#404040" mt={12}>
           載入中...
         </H4>
-      </YStack>
-    );
-  }
-
-  // Show login prompt if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <YStack flex={1} bg="#d9d9d9" style={{ paddingTop: insets.top + 10 }}>
-        <YStack px={16} pt={20}>
-          <H2 color="#404040" fontWeight={"bold"}>
-            故事庫
-          </H2>
-        </YStack>
-
-        <YStack
-          flex={1}
-          justifyContent="center"
-          alignItems="center"
-          px={32}
-          gap={20}
-        >
-          <YStack gap={12} alignItems="center">
-            <H2 color="#404040" textAlign="center">
-              歡迎來到故事庫
-            </H2>
-            <H4 color="#666" textAlign="center">
-              請登入以存取您的個人故事收藏
-            </H4>
-          </YStack>
-
-          <YStack gap={12} width="100%" maxWidth={300}>
-            <Button
-              size="$5"
-              bg="#5A9FD4"
-              color="white"
-              onPress={() => router.push("/login")}
-              pressStyle={{ opacity: 0.8 }}
-            >
-              登入 / 註冊
-            </Button>
-          </YStack>
-        </YStack>
       </YStack>
     );
   }

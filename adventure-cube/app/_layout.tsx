@@ -1,21 +1,66 @@
 import '../tamagui-web.css'
 
+import React, { useEffect, useState } from 'react'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
-import { Stack } from 'expo-router'
-import { useColorScheme } from 'react-native'
+import { Stack, useRouter, useSegments } from 'expo-router'
+import { useColorScheme, ActivityIndicator, View } from 'react-native'
 import { TamaguiProvider } from 'tamagui'
 
 import { tamaguiConfig } from '../tamagui.config'
+import { AuthService } from '../services'
 
 export default function RootLayout() {
-
   const colorScheme = useColorScheme()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+  const segments = useSegments()
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  useEffect(() => {
+    if (isLoading) return
+
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'welcome'
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // User is not authenticated and not on auth pages, redirect to welcome
+      router.replace('/welcome')
+    } else if (isAuthenticated && inAuthGroup) {
+      // User is authenticated but on auth pages, redirect to tabs
+      router.replace('/(tabs)/library')
+    }
+  }, [isAuthenticated, segments, isLoading])
+
+  const checkAuth = async () => {
+    try {
+      await AuthService.initialize()
+      const authenticated = await AuthService.isAuthenticated()
+      setIsAuthenticated(authenticated)
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      setIsAuthenticated(false)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#d9d9d9' }}>
+        <ActivityIndicator size="large" color="#5A9FD4" />
+      </View>
+    )
+  }
 
   return (
-    // add this
     <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme!}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>

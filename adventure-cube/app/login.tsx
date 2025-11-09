@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ImageBackground,
 } from "react-native";
 import {
   Button,
@@ -18,6 +19,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { AuthService } from "../services";
+
+const loginBackground = require("../assets/images/Login/login_background.png");
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -38,15 +41,8 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await AuthService.login(username.trim(), password);
-      Alert.alert("成功", "登入成功！", [
-        {
-          text: "確定",
-          onPress: () => {
-            // Navigate back to library
-            router.back();
-          },
-        },
-      ]);
+      // Navigate to library after successful login
+      router.replace("/(tabs)/library");
     } catch (error) {
       console.error("Login error:", error);
       Alert.alert(
@@ -76,15 +72,8 @@ export default function LoginScreen() {
         password,
         email.trim() || undefined
       );
-      Alert.alert("成功", "註冊成功！", [
-        {
-          text: "確定",
-          onPress: () => {
-            // Navigate back to library
-            router.back();
-          },
-        },
-      ]);
+      // Navigate to library after successful registration
+      router.replace("/(tabs)/library");
     } catch (error) {
       console.error("Registration error:", error);
       Alert.alert(
@@ -97,18 +86,23 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <ImageBackground
+      source={loginBackground}
       style={{ flex: 1 }}
+      resizeMode="cover"
     >
-      <ScrollView flex={1} bg="#d9d9d9">
-        <YStack
-          flex={1}
-          px={24}
-          pt={insets.top + 40}
-          pb={insets.bottom + 20}
-          gap={24}
-        >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView flex={1}>
+          <YStack
+            flex={1}
+            px={24}
+            pt={insets.top + 40}
+            pb={insets.bottom + 20}
+            gap={24}
+          >
           <YStack gap={12} alignItems="center">
             <H2 color="#404040" fontWeight={"bold"}>
               {isLogin ? "登入" : "註冊"}
@@ -212,7 +206,7 @@ export default function LoginScreen() {
             <Button
               chromeless
               size="$3"
-              color="#666"
+              color="white"
               onPress={() => router.back()}
               disabled={loading}
             >
@@ -222,5 +216,6 @@ export default function LoginScreen() {
         </YStack>
       </ScrollView>
     </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
