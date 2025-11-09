@@ -7,6 +7,9 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# Node modules (shouldn't be in Python project but safety measure)
+node_modules/
+
 # Media files
 media/
 staticfiles/
