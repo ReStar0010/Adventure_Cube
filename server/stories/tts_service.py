@@ -3,7 +3,10 @@ Text-to-Speech service for story narration.
 """
 import os
 import hashlib
+import re
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
 
@@ -23,7 +26,7 @@ class TTSService:
         if self.cache_enabled:
             Path(self.cache_dir).mkdir(parents=True, exist_ok=True)
     
-    def generate_audio(self, text, language='en', voice=None):
+    def generate_audio(self, text, language='en', voice=None, parallel=True, min_paragraph_length=50):
         """
         Convert text to speech and return audio file.
         
@@ -31,6 +34,8 @@ class TTSService:
             text: Text to convert to speech
             language: Language code (e.g., 'en', 'es')
             voice: Optional voice identifier
+            parallel: Whether to use parallel generation for multiple paragraphs (default: True)
+            min_paragraph_length: Minimum character length to consider splitting (default: 50)
             
         Returns:
             ContentFile: Audio file content
@@ -42,21 +47,208 @@ class TTSService:
             if cached_file:
                 return cached_file
         
-        # Generate audio based on provider
-        if self.provider == 'gtts':
-            audio_content = self._generate_with_gtts(text, language)
-        elif self.provider == 'vertex_ai':
-            audio_content = self._generate_with_vertex_ai(text, language, voice)
-        elif self.provider == 'azure':
-            audio_content = self._generate_with_azure(text, language, voice)
+        # Split text into paragraphs if parallel mode is enabled
+        paragraphs = self._split_into_paragraphs(text, min_paragraph_length) if parallel else [text]
+        
+        # Use parallel generation if multiple paragraphs and parallel mode is enabled
+        if len(paragraphs) > 1 and parallel:
+            audio_content = self._generate_parallel(paragraphs, language, voice)
         else:
-            raise ValueError(f"Unknown TTS provider: {self.provider}")
+            # Generate audio based on provider (single request)
+            if self.provider == 'gtts':
+                audio_content = self._generate_with_gtts(text, language)
+            elif self.provider == 'vertex_ai':
+                audio_content = self._generate_with_vertex_ai(text, language, voice)
+            elif self.provider == 'azure':
+                audio_content = self._generate_with_azure(text, language, voice)
+            else:
+                raise ValueError(f"Unknown TTS provider: {self.provider}")
         
         # Cache the result
         if self.cache_enabled and audio_content:
             self._save_to_cache(cache_key, audio_content)
         
         return audio_content
+    
+    def _split_into_paragraphs(self, text, min_length=50):
+        """
+        Split text into paragraphs for parallel processing.
+        
+        Args:
+            text: Text to split
+            min_length: Minimum character length for a paragraph to be processed separately
+            
+        Returns:
+            List of paragraph strings
+        """
+        # Split by double newlines, single newlines, or periods followed by space
+        # This handles various paragraph formats
+        paragraphs = re.split(r'\n\s*\n|\n(?=[A-Z])|\.\s+(?=[A-Z])', text)
+        
+        # Filter out empty paragraphs and very short ones
+        filtered = [p.strip() for p in paragraphs if p.strip() and len(p.strip()) >= min_length]
+        
+        # If no paragraphs meet the criteria, return the original text
+        if not filtered:
+            return [text]
+        
+        # Merge very short paragraphs with the previous one
+        result = []
+        for para in filtered:
+            if result and len(para) < min_length:
+                result[-1] += ' ' + para
+            else:
+                result.append(para)
+        
+        return result if result else [text]
+    
+    def _generate_parallel(self, paragraphs, language='en', voice=None):
+        """
+        Generate audio for multiple paragraphs in parallel and merge them.
+        
+        Args:
+            paragraphs: List of paragraph strings
+            language: Language code
+            voice: Optional voice identifier
+            
+        Returns:
+            ContentFile: Merged audio file content
+        """
+        print(f"🎙️ 並行生成 {len(paragraphs)} 個段落的音訊...")
+        
+        # Determine max workers (limit to avoid overwhelming the API)
+        max_workers = min(len(paragraphs), 5)  # Limit to 5 concurrent requests
+        
+        audio_segments = []
+        
+        def generate_single_paragraph(para_text, index):
+            """Generate audio for a single paragraph."""
+            try:
+                if self.provider == 'gtts':
+                    return self._generate_with_gtts(para_text, language), index
+                elif self.provider == 'vertex_ai':
+                    return self._generate_with_vertex_ai(para_text, language, voice), index
+                elif self.provider == 'azure':
+                    return self._generate_with_azure(para_text, language, voice), index
+                else:
+                    raise ValueError(f"Unknown TTS provider: {self.provider}")
+            except Exception as e:
+                print(f"❌ 段落 {index + 1} 生成失敗: {e}")
+                return None, index
+        
+        # Generate audio segments in parallel
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_index = {
+                executor.submit(generate_single_paragraph, para, idx): idx
+                for idx, para in enumerate(paragraphs)
+            }
+            
+            # Collect results as they complete
+            results = {}
+            for future in as_completed(future_to_index):
+                audio_content, index = future.result()
+                if audio_content:
+                    results[index] = audio_content
+        
+        # Sort results by index to maintain paragraph order
+        audio_segments = [results[i] for i in sorted(results.keys())]
+        
+        if not audio_segments:
+            print("❌ 所有段落生成都失敗，回退到單一請求模式")
+            # Fallback to single request
+            full_text = ' '.join(paragraphs)
+            return self._generate_audio_fallback(full_text, language, voice)
+        
+        print(f"✅ 成功生成 {len(audio_segments)}/{len(paragraphs)} 個段落，正在合併...")
+        
+        # Merge audio segments
+        return self._merge_audio_segments(audio_segments)
+    
+    def _generate_audio_fallback(self, text, language, voice):
+        """Fallback method for generating audio when parallel generation fails."""
+        if self.provider == 'gtts':
+            return self._generate_with_gtts(text, language)
+        elif self.provider == 'vertex_ai':
+            return self._generate_with_vertex_ai(text, language, voice)
+        elif self.provider == 'azure':
+            return self._generate_with_azure(text, language, voice)
+        else:
+            raise ValueError(f"Unknown TTS provider: {self.provider}")
+    
+    def _merge_audio_segments(self, audio_segments):
+        """
+        Merge multiple audio ContentFiles into a single audio file.
+        
+        Args:
+            audio_segments: List of ContentFile objects containing audio data
+            
+        Returns:
+            ContentFile: Merged audio file content
+        """
+        print(f"🔗 開始合併 {len(audio_segments)} 個音訊片段...")
+        
+        try:
+            from pydub import AudioSegment
+            
+            # Load all audio segments
+            segments = []
+            for i, audio_content in enumerate(audio_segments, 1):
+                try:
+                    # Reset file pointer
+                    audio_content.seek(0)
+                    # Load audio segment
+                    audio_bytes = audio_content.read()
+                    print(f"   段落 {i}: {len(audio_bytes)} bytes")
+                    audio_segment = AudioSegment.from_mp3(BytesIO(audio_bytes))
+                    print(f"   段落 {i}: {len(audio_segment)/1000:.2f} 秒")
+                    segments.append(audio_segment)
+                except Exception as e:
+                    print(f"⚠️  載入段落 {i} 時發生錯誤: {e}")
+                    # 繼續處理其他段落
+                    continue
+            
+            if not segments:
+                print("❌ 沒有成功載入任何音訊段落")
+                return audio_segments[0] if audio_segments else None
+            
+            print(f"✅ 成功載入 {len(segments)} 個段落")
+            
+            # Add a small silence between segments for natural flow (500ms)
+            silence = AudioSegment.silent(duration=500)
+            merged = segments[0]
+            for i, segment in enumerate(segments[1:], 2):
+                print(f"   合併段落 {i}...")
+                merged += silence + segment
+            
+            total_duration = len(merged) / 1000
+            print(f"✅ 合併完成，總長度: {total_duration:.2f} 秒")
+            
+            # Export to bytes
+            print("📤 正在導出 MP3...")
+            output_buffer = BytesIO()
+            merged.export(output_buffer, format='mp3')
+            output_buffer.seek(0)
+            
+            audio_data = output_buffer.read()
+            print(f"✅ 導出完成，檔案大小: {len(audio_data) / 1024:.2f} KB")
+            
+            return ContentFile(audio_data, name='story_audio.mp3')
+            
+        except ImportError as e:
+            print(f"❌ pydub 未安裝或導入失敗: {e}")
+            print("⚠️  請執行: pip install pydub")
+            print("⚠️  Windows 用戶可能還需要安裝 ffmpeg")
+            print("⚠️  回退到單一段落模式...")
+            # Fallback: return the first segment (not ideal but better than failing)
+            return audio_segments[0] if audio_segments else None
+        except Exception as e:
+            print(f"❌ 合併音訊時發生錯誤: {e}")
+            import traceback
+            traceback.print_exc()
+            print("⚠️  回退到單一段落模式...")
+            # Fallback: return the first segment
+            return audio_segments[0] if audio_segments else None
     
     def _generate_with_gtts(self, text, language):
         """
