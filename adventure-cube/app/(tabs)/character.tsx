@@ -62,10 +62,16 @@ export default function CharacterScreen() {
 
         try {
             const selectedCharacter = CHARACTERS[selectedIndex];
+            console.log('🎭 Selected character:', selectedCharacter.name, selectedCharacter);
             currentStory.character = selectedCharacter;
+            console.log('📝 Story character after assignment:', currentStory.character.name);
 
             await StorageManager.updateStory(currentStory);
             await StorageManager.setCurrentStory(currentStory);
+            
+            // Verify it was saved
+            const savedStory = await StorageManager.getCurrentStory();
+            console.log('✅ Verified saved character:', savedStory?.character?.name);
 
             // Navigate to next step (theme selection)
             router.push('/theme');

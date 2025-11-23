@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { XStack, YStack, Text, H4, Button, Image } from "tamagui";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Story } from "../../types/Story";
 import { StorageManager } from "../../utils/storage";
 import { useStoryGeneration } from "../../hooks/use-story-generation";
@@ -33,6 +33,11 @@ export default function StoryScreen() {
   const loadCurrentStory = useCallback(async () => {
     try {
       const story = await StorageManager.getCurrentStory();
+      console.log('📖 Loaded current story:', story?.storyTitle);
+      console.log('🎭 Story character:', story?.character?.name, story?.character);
+      console.log('🌍 Story background:', story?.background?.name);
+      console.log('🎨 Story theme:', story?.theme?.name);
+      console.log('🔑 Story key items:', story?.keyItems?.map(item => item.name));
       setCurrentStory(story);
     } catch (error) {
       console.error("Failed to load current story:", error);
@@ -41,10 +46,18 @@ export default function StoryScreen() {
     }
   }, []);
 
-  // Load story on mount
+  // Load story on mount and when screen is focused
   useEffect(() => {
     loadCurrentStory();
   }, [loadCurrentStory]);
+
+  // Reload story when screen is focused (in case it was updated in another screen)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📱 Story screen focused, reloading story...');
+      loadCurrentStory();
+    }, [loadCurrentStory])
+  );
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -90,6 +103,13 @@ export default function StoryScreen() {
     }
 
     try {
+      console.log('🚀 Generating story with:');
+      console.log('   Title:', currentStory.storyTitle);
+      console.log('   Character:', currentStory.character?.name);
+      console.log('   Background:', currentStory.background?.name);
+      console.log('   Theme:', currentStory.theme?.name);
+      console.log('   Key Items:', currentStory.keyItems?.map(item => item.name));
+      
       // Call the backend to generate the story
       await generateStory(
         currentStory.storyTitle,
