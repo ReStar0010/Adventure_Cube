@@ -4,19 +4,61 @@ Serializers for Story API.
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
-from .models import Story, AudioFile
+from .models import Story, AudioFile, StoryParagraph
+
+
+class StoryParagraphSerializer(serializers.ModelSerializer):
+    """Serializer for StoryParagraph model."""
+    
+    tts_url = serializers.SerializerMethodField()
+    is_ready = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StoryParagraph
+        fields = [
+            'id', 'paragraph_index', 'paragraph_type', 'text',
+            'tts_url', 'tts_duration_seconds', 'is_generated', 'is_ready', 'generated_at'
+        ]
+        read_only_fields = ['id', 'is_generated', 'generated_at']
+    
+    def get_tts_url(self, obj):
+        """Get full URL for TTS audio file."""
+        request = self.context.get('request')
+        if obj.tts_audio_file and hasattr(obj.tts_audio_file, 'url'):
+            if request:
+                return request.build_absolute_uri(obj.tts_audio_file.url)
+            return obj.tts_audio_file.url
+        return None
+    
+    def get_is_ready(self, obj):
+        """Check if paragraph is ready (generated and has TTS)."""
+        return obj.is_generated and bool(obj.tts_audio_file)
 
 
 class StorySerializer(serializers.ModelSerializer):
     """Serializer for Story model."""
     
+    paragraphs = StoryParagraphSerializer(many=True, read_only=True, source='paragraphs.all')
+    paragraphs_ready = serializers.SerializerMethodField()
+    total_paragraphs = serializers.SerializerMethodField()
+    
     class Meta:
         model = Story
         fields = [
             'id', 'title', 'body', 'theme', 'child_name', 'child_age',
-            'model_source', 'language', 'character', 'background', 'key_items', 'created_at'
+            'model_source', 'language', 'character', 'background', 'key_items',
+            'generation_status', 'context_template', 'created_at',
+            'paragraphs', 'paragraphs_ready', 'total_paragraphs'
         ]
         read_only_fields = ['id', 'created_at']
+    
+    def get_paragraphs_ready(self, obj):
+        """Get count of ready paragraphs."""
+        return obj.paragraphs.filter(is_generated=True).count()
+    
+    def get_total_paragraphs(self, obj):
+        """Get total expected paragraphs."""
+        return 5
 
 
 class StoryGenerateRequestSerializer(serializers.Serializer):

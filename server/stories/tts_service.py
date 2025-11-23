@@ -292,9 +292,25 @@ class TTSService:
             client = texttospeech.TextToSpeechClient()
             
             # Configure voice selection
-            # Default to child-friendly voices
-            voice_name = voice or 'en-US-Neural2-D'  # Child-friendly voice
-            language_code = language if len(language) == 5 else f"{language}-US"
+            # Map language codes to Vertex AI language codes and voices
+            language_voice_map = {
+                'zh-TW': ('zh-TW', 'zh-TW-Standard-A' if not voice else voice),  # Traditional Chinese
+                'zh-CN': ('zh-CN', 'zh-CN-Standard-A' if not voice else voice),  # Simplified Chinese
+                'en': ('en-US', 'en-US-Neural2-D' if not voice else voice),  # English child-friendly
+                'en-US': ('en-US', 'en-US-Neural2-D' if not voice else voice),
+            }
+            
+            # Get language code and voice
+            if language in language_voice_map:
+                language_code, voice_name = language_voice_map[language]
+            elif len(language) == 5 and '-' in language:
+                # Already in format like 'zh-TW', use as-is
+                language_code = language
+                voice_name = voice or f"{language}-Standard-A"
+            else:
+                # Default to English
+                language_code = 'en-US'
+                voice_name = voice or 'en-US-Neural2-D'
             
             # Set up the input text
             synthesis_input = texttospeech.SynthesisInput(text=text)

@@ -1,8 +1,8 @@
 """
-Story generation service with template-based and LLM-based generation.
+Story generation service using Gemini API with Context Engineering templates.
 """
-import random
 from django.conf import settings
+from .context_engineering import ContextTemplateLoader, StoryStructure, ParagraphType
 
 
 # Character personalities mapping (Traditional Chinese)
@@ -25,149 +25,14 @@ CHARACTER_PERSONALITIES = {
 }
 
 
-# Story templates organized by theme
-STORY_TEMPLATES = {
-    'caring': [
-        {
-            'title': '{name} and the Lost Puppy',
-            'template': """Once upon a time, there was a kind {age}-year-old named {name}. One sunny day, {name} heard a soft whimpering sound coming from the park. Following the sound, {name} discovered a tiny puppy hiding under a bench, looking scared and alone.
-
-{name} gently approached the puppy, speaking in a soft voice. "Don't worry, little one. I'll help you find your home." {name} carefully picked up the puppy and noticed it had a collar with a phone number.
-
-With the help of a grown-up, {name} called the number. Soon, a worried family arrived, so happy to see their lost puppy! They thanked {name} for being so caring and gentle.
-
-The puppy's family invited {name} to visit anytime. {name} learned that being caring and helping others can create wonderful friendships.
-
-The End."""
-        },
-        {
-            'title': '{name}\'s Garden of Kindness',
-            'template': """In a cheerful neighborhood lived {name}, a {age}-year-old who loved plants and flowers. One day, {name} noticed that the neighborhood garden looked sad and overgrown.
-
-{name} had an idea! "I'll help make the garden beautiful again!" With permission from the grown-ups, {name} started pulling weeds and watering the thirsty plants.
-
-Soon, neighbors noticed {name}'s hard work. They joined in, and together they planted colorful flowers, tomatoes, and herbs. The garden transformed into a beautiful space where everyone could enjoy nature.
-
-{name} felt proud seeing neighbors gathering in the garden, sharing vegetables, and making new friends. The garden became a special place because {name} showed how one caring person can make a big difference.
-
-The End."""
-        }
-    ],
-    'courage': [
-        {
-            'title': '{name} and the Dark Cave',
-            'template': """Deep in the forest stood a mysterious cave that everyone was afraid to explore. But brave {name}, who was {age} years old, was curious about what might be inside.
-
-One day, with a flashlight and a trusted friend, {name} decided to be brave. "We can do this together," {name} said. Step by step, they walked into the dark cave, their hearts beating fast.
-
-Inside, instead of something scary, they discovered beautiful crystal formations that sparkled like stars! The cave was full of natural wonders that no one had ever seen before.
-
-{name} realized that being courageous doesn't mean not being scared—it means doing something even when you ARE scared. The discovery brought joy to the whole village, and {name} became known as the brave explorer.
-
-The End."""
-        }
-    ],
-    'friendship': [
-        {
-            'title': '{name} and the New Friend',
-            'template': """At school, {name}, who was {age} years old, noticed a new student sitting alone at lunch. The new student looked lonely and shy.
-
-{name} remembered what it felt like to be new and made a brave decision. Walking over with a big smile, {name} said, "Hi! Would you like to sit with me and my friends?"
-
-The new student's face lit up with happiness. They talked about their favorite games, books, and hobbies. {name} discovered they had so much in common!
-
-From that day on, they became the best of friends. {name} learned that friendship starts with one kind gesture, and being friendly can change someone's whole day. Making a new friend made {name}'s days even more fun and special.
-
-The End."""
-        }
-    ],
-    'honest': [
-        {
-            'title': '{name} Tells the Truth',
-            'template': """One afternoon, {age}-year-old {name} accidentally broke a special vase while playing indoors. {name}'s heart sank. No one had seen what happened, and {name} was scared of getting in trouble.
-
-{name} thought about hiding the broken pieces, but something didn't feel right. Taking a deep breath, {name} decided to be honest and tell the truth, even though it was scary.
-
-"I'm sorry," {name} said, showing the broken pieces. "I was playing and accidentally broke the vase. I should have been more careful."
-
-To {name}'s surprise, the grown-ups were proud of {name} for being honest. "Everyone makes mistakes," they said. "But telling the truth takes real courage. We're proud of you."
-
-{name} learned that being honest, even when it's hard, is always the right choice. It makes others trust you and makes you feel good inside.
-
-The End."""
-        }
-    ],
-    'nature': [
-        {
-            'title': '{name}\'s Forest Adventure',
-            'template': """One beautiful morning, {name}, a curious {age}-year-old, went on a nature walk in the forest. {name} brought a notebook to draw all the amazing things in nature.
-
-As {name} walked along the forest path, wonderful discoveries appeared everywhere! A family of rabbits hopped by, colorful butterflies danced on flowers, and a wise old owl watched from a tall tree.
-
-{name} sat by a peaceful stream and noticed how everything in nature was connected—the trees gave homes to birds, the flowers fed the bees, and the stream gave water to all the plants and animals.
-
-Drawing pictures of all these discoveries, {name} felt grateful for the beautiful natural world. {name} promised to always take care of nature and teach others about its wonders.
-
-The End."""
-        }
-    ],
-    'share': [
-        {
-            'title': '{name} Learns to Share',
-            'template': """It was {name}'s birthday! The {age}-year-old received the most amazing toy—a remote-controlled car that everyone wanted to play with.
-
-At the birthday party, {name}'s friends all asked to try the new toy. At first, {name} wanted to keep it all to themselves. "It's mine!" {name} said, holding it tight.
-
-But then {name} noticed that the friends looked sad. {name} thought about how much more fun it would be if everyone could play together. Taking a deep breath, {name} said, "Let's take turns! Everyone can drive the car."
-
-Soon, everyone was laughing and having fun, racing the car and making up games together. {name} discovered that sharing the toy made the birthday party even more special. The joy on everyone's faces made {name} happier than keeping the toy alone ever could.
-
-{name} learned that sharing doesn't mean losing something—it means multiplying the fun and happiness!
-
-The End."""
-        }
-    ]
-}
-
-
 class StoryGenerator:
     """
-    Handles story generation using templates or LLM APIs.
+    Handles story generation using Gemini API with Context Engineering templates.
     """
     
     def __init__(self):
         self.provider = settings.LLM_PROVIDER
-        
-    def generate_story(self, theme, child_name=None, child_age=None, **kwargs):
-        """
-        Generate a story based on the theme, character, background, key items, and child information.
-        
-        Args:
-            theme: Story theme (caring, courage, friendship, honest, nature, share)
-            child_name: Optional child's name (default: "Your Hero")
-            child_age: Optional child's age (default: 5)
-            character: Optional character name
-            background: Optional background name
-            key_items: Optional list of key item names
-            **kwargs: Additional options
-            
-        Returns:
-            dict: {
-                'title': str,
-                'body': str,
-                'model_source': 'online' or 'offline'
-            }
-        
-        Supported LLM providers: 'openai', 'anthropic', 'gemini', 'template'
-        """
-        if self.provider == 'openai' and settings.OPENAI_API_KEY:
-            return self._generate_with_openai(theme, child_name, child_age, **kwargs)
-        elif self.provider == 'anthropic' and settings.ANTHROPIC_API_KEY:
-            return self._generate_with_anthropic(theme, child_name, child_age, **kwargs)
-        elif self.provider == 'gemini' and settings.GEMINI_API_KEY:
-            return self._generate_with_gemini(theme, child_name, child_age, **kwargs)
-        else:
-            return self._generate_with_template(theme, child_name, child_age, **kwargs)
+        self.template_loader = ContextTemplateLoader()
     
     def _get_character_personalities(self, character_name):
         """Get personality traits for a character."""
@@ -178,263 +43,378 @@ class StoryGenerator:
         char_key = character_name.lower().strip()
         return CHARACTER_PERSONALITIES.get(char_key, [])
     
-    def _generate_with_template(self, theme, child_name, child_age, **kwargs):
+    def generate_intro_paragraph(self, theme, child_name=None, child_age=None, context_template='5min_basic', **kwargs):
         """
-        Generate story using pre-defined templates.
-        Note: Templates are simple and don't use character, background, or key items.
-        For full customization with all elements, use LLM providers.
+        Generate only the first paragraph (Intro Goal) immediately.
+        
+        Args:
+            theme: Story theme
+            child_name: Optional child's name
+            child_age: Optional child's age
+            context_template: Template name (default: '5min_basic')
+            **kwargs: Additional story elements (character, background, key_items)
+        
+        Returns:
+            dict: {
+                'title': str,
+                'paragraph_text': str,
+                'paragraph_type': 'intro_goal',
+                'paragraph_index': 0
+            }
         """
-        # Use default values if not provided
-        name = child_name or "Your Hero"
-        age = child_age or 5
+        # Load context template
+        try:
+            print(f"📖 Loading context template: {context_template}")
+            template_data = self.template_loader.load_template(context_template)
+            print(f"✅ Template loaded successfully")
+            print(f"   System prompt: {len(template_data['system_prompt'])} chars")
+            print(f"   User prompt template: {len(template_data['user_prompt_template'])} chars")
+            print(f"   Structure keys: {list(template_data['structure'].keys())}")
+        except Exception as e:
+            print(f"❌ Failed to load template {context_template}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise ValueError(f"Failed to load context template '{context_template}': {e}")
         
-        # Clamp age to reasonable range
-        age = max(3, min(age, 10))
+        # Build prompt for intro paragraph
+        prompt = self._build_intro_prompt(theme, child_name, child_age, template_data, **kwargs)
         
-        # Get templates for the theme (fallback to 'friendship' if theme not found)
-        theme_lower = theme.lower()
-        templates = STORY_TEMPLATES.get(theme_lower, STORY_TEMPLATES['friendship'])
+        # Check if Gemini is configured
+        if not settings.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY is not set. Please configure it in your environment variables.")
         
-        # Select a random template
-        template_data = random.choice(templates)
+        if self.provider != 'gemini':
+            print(f"⚠️  WARNING: LLM_PROVIDER is set to '{self.provider}', but only Gemini is supported.")
+            print(f"   Setting provider to 'gemini' for this generation.")
         
-        # Fill in the template
-        title = template_data['title'].format(name=name, age=age)
-        body = template_data['template'].format(name=name, age=age)
+        # Generate using Gemini
+        print("🚀 Using Gemini for paragraph generation with Context Engineering template")
+        result = self._generate_paragraph_with_gemini(prompt, template_data['system_prompt'], ParagraphType.INTRO_GOAL)
         
-        return {
-            'title': title,
-            'body': body,
-            'model_source': 'offline'
+        return result
+    
+    def generate_paragraph(self, story, paragraph_index, previous_paragraphs, theme, child_name=None, child_age=None, context_template='5min_basic', **kwargs):
+        """
+        Generate a specific paragraph using previous paragraphs as context.
+        
+        Args:
+            story: Story model instance
+            paragraph_index: Index of paragraph to generate (1-4)
+            previous_paragraphs: List of StoryParagraph instances (already generated)
+            theme: Story theme
+            child_name: Optional child's name
+            child_age: Optional child's age
+            context_template: Template name
+            **kwargs: Additional story elements
+        
+        Returns:
+            dict: {
+                'paragraph_text': str,
+                'paragraph_type': str,
+                'paragraph_index': int
+            }
+        """
+        if paragraph_index < 1 or paragraph_index > 4:
+            raise ValueError("paragraph_index must be between 1 and 4")
+        
+        para_type = ParagraphType.get_by_index(paragraph_index)
+        if not para_type:
+            raise ValueError(f"Invalid paragraph_index: {paragraph_index}")
+        
+        # Load context template
+        try:
+            template_data = self.template_loader.load_template(context_template)
+        except Exception as e:
+            print(f"Failed to load template {context_template}: {e}")
+            raise
+        
+        # Build prompt for this paragraph
+        prompt = self._build_paragraph_prompt(
+            para_type, previous_paragraphs, theme, child_name, child_age, template_data, **kwargs
+        )
+        
+        # Check if Gemini is configured
+        if not settings.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY is not set. Please configure it in your environment variables.")
+        
+        # Generate using Gemini
+        result = self._generate_paragraph_with_gemini(prompt, template_data['system_prompt'], para_type)
+        
+        return result
+    
+    def _build_intro_prompt(self, theme, child_name, child_age, template_data, **kwargs):
+        """Build prompt for intro paragraph generation."""
+            name = child_name or "Your Hero"
+            age = child_age or 5
+            age = max(3, min(age, 10))
+            
+            character = kwargs.get('character', 'an adventurer')
+            background = kwargs.get('background', 'a magical place')
+            key_items = kwargs.get('key_items', [])
+            
+            # Get character personalities
+            personalities = self._get_character_personalities(character)
+            items_text = ", ".join(key_items) if key_items else "no special items"
+            
+            personality_text = ""
+            if personalities:
+                personality_list = "、".join(personalities)
+                personality_text = f"\n角色性格特質：{personality_list}"
+            
+        # Get structure instruction for intro
+        structure_instruction = template_data['structure'].get('intro_goal', '故事的開端(短篇)')
+        
+        # Build user prompt - replace placeholders manually since template uses [請在此填入...] format
+        user_prompt = template_data['user_prompt_template']
+        user_prompt = user_prompt.replace('[請在此填入故事希望傳達的中心思想，例如：互相合作、勇敢面對恐懼、分享的快樂]', theme)
+        user_prompt = user_prompt.replace('[請在此填入主角1的中文名字，例如：小老鼠「吱吱」]', character)
+        user_prompt = user_prompt.replace('[請在此填入主角2的中文名字，例如：小松鼠「果果」]', name)
+        user_prompt = user_prompt.replace('[請在此填入一個充滿童趣的中文地點名稱，例如：「棉花糖雲朵」的柔軟森林]', background)
+        user_prompt = user_prompt.replace('[請在此填入主角們要去達成的具體目標]', 
+                                       f"探索{background}並找到{items_text}" if key_items else f"在{background}中冒險")
+        # Replace [主角1] and [主角2] references in the structure section
+        user_prompt = user_prompt.replace('[主角1]', character)
+        user_prompt = user_prompt.replace('[主角2]', name)
+        
+        # Add specific instruction for intro paragraph
+        prompt = f"""{user_prompt}
+
+**現在請生成第一段（Intro Goal）：**
+- {structure_instruction}
+- 建立世界並介紹角色
+- 確立目標
+- 保持2-4個句子的長度
+- 使用適合兒童的簡單詞彙
+- 嚴格使用繁體中文"""
+        
+        return prompt
+    
+    def _build_paragraph_prompt(self, para_type, previous_paragraphs, theme, child_name, child_age, template_data, **kwargs):
+        """Build prompt for generating a specific paragraph."""
+            name = child_name or "Your Hero"
+            age = child_age or 5
+            age = max(3, min(age, 10))
+            
+            character = kwargs.get('character', 'an adventurer')
+            background = kwargs.get('background', 'a magical place')
+            key_items = kwargs.get('key_items', [])
+            
+            personalities = self._get_character_personalities(character)
+            items_text = ", ".join(key_items) if key_items else "no special items"
+            
+            personality_text = ""
+            if personalities:
+                personality_list = "、".join(personalities)
+                personality_text = f"\n角色性格特質：{personality_list}"
+            
+        # Build original user prompt - replace placeholders manually
+        user_prompt = template_data['user_prompt_template']
+        user_prompt = user_prompt.replace('[請在此填入故事希望傳達的中心思想，例如：互相合作、勇敢面對恐懼、分享的快樂]', theme)
+        user_prompt = user_prompt.replace('[請在此填入主角1的中文名字，例如：小老鼠「吱吱」]', character)
+        user_prompt = user_prompt.replace('[請在此填入主角2的中文名字，例如：小松鼠「果果」]', name)
+        user_prompt = user_prompt.replace('[請在此填入一個充滿童趣的中文地點名稱，例如：「棉花糖雲朵」的柔軟森林]', background)
+        user_prompt = user_prompt.replace('[請在此填入主角們要去達成的具體目標]', 
+                                       f"探索{background}並找到{items_text}" if key_items else f"在{background}中冒險")
+        # Replace [主角1] and [主角2] references in the structure section
+        user_prompt = user_prompt.replace('[主角1]', character)
+        user_prompt = user_prompt.replace('[主角2]', name)
+        
+        # Build previous paragraphs context
+        previous_text = "\n\n".join([
+            f"段落 {p.paragraph_index} ({p.paragraph_type}):\n{p.text}"
+            for p in sorted(previous_paragraphs, key=lambda x: x.paragraph_index)
+        ])
+        
+        # Get structure instruction for this paragraph
+        structure_key = para_type.type_key
+        structure_instruction = template_data['structure'].get(structure_key, para_type.chinese_name)
+        
+        # Build paragraph-specific instruction
+        para_instructions = {
+            'problem_obstacle': '直接描述一個具體發生的事件作為阻礙',
+            'effort_effort': '描寫主角們想出的計畫和努力的過程',
+            'climax_climax': '這是克服困難的關鍵時刻',
+            'ending_ending': '描寫一個溫暖、有趣且充滿啟發的收尾'
         }
+        specific_instruction = para_instructions.get(structure_key, '')
+        
+        prompt = f"""{user_prompt}
+
+**已生成的段落：**
+{previous_text}
+
+**現在請生成段落 {para_type.index + 1} ({para_type.chinese_name})：**
+- {structure_instruction}
+- {specific_instruction}
+- 基於前面的段落繼續發展故事
+- 保持2-4個句子的長度
+- 使用適合兒童的簡單詞彙
+- 嚴格使用繁體中文"""
+        
+        return prompt
     
-    def _generate_with_openai(self, theme, child_name, child_age, **kwargs):
-        """
-        Generate story using OpenAI API with all story elements.
-        """
-        try:
-            import openai
-            openai.api_key = settings.OPENAI_API_KEY
-            
-            name = child_name or "Your Hero"
-            age = child_age or 5
-            age = max(3, min(age, 10))
-            
-            character = kwargs.get('character', 'an adventurer')
-            background = kwargs.get('background', 'a magical place')
-            key_items = kwargs.get('key_items', [])
-            
-            # Get character personalities
-            personalities = self._get_character_personalities(character)
-            
-            items_text = ", ".join(key_items) if key_items else "no special items"
-            
-            # Build personality description
-            personality_text = ""
-            if personalities:
-                personality_list = "、".join(personalities)
-                personality_text = f"\n角色性格特質：{personality_list}"
-            
-            prompt = f"""Write a short, age-appropriate children's story (300-800 words) incorporating all these elements:
-
-Character: {character}{personality_text}
-Setting/Background: {background}
-Theme: {theme}
-Key Items in the story: {items_text}
-
-The story should:
-- Feature {character} as the main character
-- Showcase the character's unique personality traits through their actions, decisions, and interactions
-- Take place in {background}
-- Incorporate the key items naturally into the plot
-- Be centered around the theme of {theme}
-- Be positive and educational
-- Be appropriate for ages 4-8
-- Have a satisfying ending
-- Be engaging and fun to read
-
-Format the response as:
-Title: [Story Title]
-
-[Story body]"""
-            
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a children's story writer who creates safe, educational, and engaging stories for young children."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=1000,
-                temperature=0.8
-            )
-            
-            content = response.choices[0].message.content.strip()
-            
-            # Parse title and body
-            if "Title:" in content:
-                parts = content.split("\n", 2)
-                title = parts[0].replace("Title:", "").strip()
-                body = parts[2].strip() if len(parts) > 2 else parts[1].strip()
-            else:
-                lines = content.split("\n")
-                title = lines[0].strip()
-                body = "\n".join(lines[1:]).strip()
-            
-            return {
-                'title': title,
-                'body': body,
-                'model_source': 'online'
-            }
-            
-        except Exception as e:
-            print(f"OpenAI generation failed: {e}. Falling back to template.")
-            return self._generate_with_template(theme, child_name, child_age, **kwargs)
-    
-    def _generate_with_anthropic(self, theme, child_name, child_age, **kwargs):
-        """
-        Generate story using Anthropic Claude API with all story elements.
-        """
-        try:
-            import anthropic
-            
-            client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-            
-            name = child_name or "Your Hero"
-            age = child_age or 5
-            age = max(3, min(age, 10))
-            
-            character = kwargs.get('character', 'an adventurer')
-            background = kwargs.get('background', 'a magical place')
-            key_items = kwargs.get('key_items', [])
-            
-            # Get character personalities
-            personalities = self._get_character_personalities(character)
-            
-            items_text = ", ".join(key_items) if key_items else "no special items"
-            
-            # Build personality description
-            personality_text = ""
-            if personalities:
-                personality_list = "、".join(personalities)
-                personality_text = f"\n角色性格特質：{personality_list}"
-            
-            prompt = f"""Write a short, age-appropriate children's story (300-800 words) incorporating all these elements:
-
-Character: {character}{personality_text}
-Setting/Background: {background}
-Theme: {theme}
-Key Items in the story: {items_text}
-
-The story should:
-- Feature {character} as the main character
-- Showcase the character's unique personality traits through their actions, decisions, and interactions
-- Take place in {background}
-- Incorporate the key items naturally into the plot
-- Be centered around the theme of {theme}
-- Be positive and educational
-- Be appropriate for ages 4-8
-- Have a satisfying ending
-- Be engaging and fun to read
-
-Please provide the story with a title."""
-            
-            message = client.messages.create(
-                model="claude-3-haiku-20240307",
-                max_tokens=1000,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            
-            content = message.content[0].text.strip()
-            
-            # Parse title and body (simple heuristic)
-            lines = content.split("\n")
-            title = lines[0].strip().replace("#", "").strip()
-            body = "\n".join(lines[1:]).strip()
-            
-            return {
-                'title': title,
-                'body': body,
-                'model_source': 'online'
-            }
-            
-        except Exception as e:
-            print(f"Anthropic generation failed: {e}. Falling back to template.")
-            return self._generate_with_template(theme, child_name, child_age, **kwargs)
-    
-    def _generate_with_gemini(self, theme, child_name, child_age, **kwargs):
-        """
-        Generate story using Google Gemini API with all story elements.
-        """
+    def _generate_paragraph_with_gemini(self, prompt, system_prompt, para_type):
+        """Generate a paragraph using Gemini."""
         try:
             import google.generativeai as genai
-            
             genai.configure(api_key=settings.GEMINI_API_KEY)
             
-            name = child_name or "Your Hero"
-            age = child_age or 5
-            age = max(3, min(age, 10))
+            # Use system_instruction for better prompt handling in Gemini
+            # This ensures the system prompt is properly recognized
+            print(f"🔵 Using Context Engineering template with Gemini")
+            print(f"System prompt length: {len(system_prompt)} chars")
+            print(f"User prompt length: {len(prompt)} chars")
+            # Debug: Print first 200 chars of prompt to see what's being sent
+            print(f"🔍 Prompt preview (first 200 chars): {prompt[:200]}...")
             
-            character = kwargs.get('character', 'an adventurer')
-            background = kwargs.get('background', 'a magical place')
-            key_items = kwargs.get('key_items', [])
+            # Create model with system instruction
+            # Configure safety settings to be less strict for children's stories
+            # Options: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
+            # Current: BLOCK_NONE (safety filters disabled for testing)
+            try:
+                from google.generativeai.types import HarmCategory, HarmBlockThreshold
+                safety_settings = {
+                    # DISABLED for testing - no safety filters
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                }
+                print(f"🔒 Safety settings configured: BLOCK_NONE (all filters disabled for testing)")
+            except (ImportError, AttributeError):
+                # Fallback: use default safety settings (model default)
+                safety_settings = None
+                print("⚠️  Could not import safety settings enums, using model defaults")
             
-            # Get character personalities
-            personalities = self._get_character_personalities(character)
+            generation_config = genai.types.GenerationConfig(
+                temperature=0.8,
+                max_output_tokens=500,
+            )
             
-            items_text = ", ".join(key_items) if key_items else "no special items"
-            
-            # Build personality description
-            personality_text = ""
-            if personalities:
-                personality_list = "、".join(personalities)
-                personality_text = f"\n角色性格特質：{personality_list}"
-            
-            prompt = f"""Write a short, age-appropriate children's story (300-800 words) incorporating all these elements:
-
-Character: {character}{personality_text}
-Setting/Background: {background}
-Theme: {theme}
-Key Items in the story: {items_text}
-
-The story should:
-- Feature {character} as the main character
-- Showcase the character's unique personality traits through their actions, decisions, and interactions
-- Take place in {background}
-- Incorporate the key items naturally into the plot
-- Be centered around the theme of {theme}
-- Be positive and educational
-- Be appropriate for ages 4-8
-- Have a satisfying ending
-- Be engaging and fun to read
-
-Please provide the story with a title. Format the response as:
-Title: [Story Title]
-
-[Story body]"""
-            
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content(prompt)
-            
-            content = response.text.strip()
-            
-            # Parse title and body
-            if "Title:" in content:
-                parts = content.split("\n", 2)
-                title = parts[0].replace("Title:", "").strip()
-                body = parts[2].strip() if len(parts) > 2 else parts[1].strip()
+            # Create model with system instruction and safety settings
+            if safety_settings:
+                model = genai.GenerativeModel(
+                    'gemini-2.5-flash',
+                    system_instruction=system_prompt,
+                    safety_settings=safety_settings
+                )
             else:
-                lines = content.split("\n")
-                title = lines[0].strip().replace("#", "").strip()
-                body = "\n".join(lines[1:]).strip()
+                model = genai.GenerativeModel(
+                    'gemini-2.5-flash',
+                    system_instruction=system_prompt
+                )
             
-            return {
-                'title': title,
-                'body': body,
-                'model_source': 'online'
+            # Generate with the user prompt (system prompt is already set)
+            response = model.generate_content(
+                prompt,
+                generation_config=generation_config
+            )
+            
+            # Check if response was blocked by safety filters
+            if not response.candidates or len(response.candidates) == 0:
+                print("❌ DEBUG: No candidates in response")
+                print(f"   Response object: {response}")
+                if hasattr(response, 'prompt_feedback'):
+                    print(f"   Prompt feedback: {response.prompt_feedback}")
+                # Try to get prompt feedback for more info
+                if hasattr(response, 'prompt_feedback') and response.prompt_feedback:
+                    print(f"   Prompt feedback block_reason: {getattr(response.prompt_feedback, 'block_reason', 'N/A')}")
+                raise ValueError("Gemini API returned no candidates. The response may have been blocked by safety filters.")
+            
+            candidate = response.candidates[0]
+            
+            # Debug: Print finish_reason and other details
+            finish_reason = getattr(candidate, 'finish_reason', None)
+            safety_ratings = getattr(candidate, 'safety_ratings', [])
+            print(f"🔍 DEBUG: Candidate finish_reason: {finish_reason}")
+            print(f"🔍 DEBUG: Candidate safety_ratings: {safety_ratings}")
+            
+            # Check finish_reason - 2 means SAFETY (blocked by safety filters)
+            # Even with BLOCK_NONE, Gemini may still block at system level
+            if finish_reason == 2:
+                # Get more details about what was blocked
+                blocked_categories = []
+                for rating in safety_ratings:
+                    if hasattr(rating, 'category') and hasattr(rating, 'probability'):
+                        if rating.probability >= 2:  # MEDIUM or HIGH
+                            blocked_categories.append(f"{rating.category} (probability: {rating.probability})")
+                
+                # Check if there's any partial content we can use
+                partial_content = None
+                if hasattr(candidate, 'content') and candidate.content:
+                    if hasattr(candidate.content, 'parts') and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                partial_content = part.text
+                                break
+                
+                error_details = "Content was blocked by Gemini's safety filters (even with BLOCK_NONE - system-level block)."
+                if blocked_categories:
+                    error_details += f" Blocked categories: {', '.join(blocked_categories)}"
+                else:
+                    error_details += " No specific category details available."
+                
+                print(f"❌ DEBUG: Safety filter triggered (system-level block)!")
+                print(f"   Finish reason: {finish_reason} (2 = SAFETY)")
+                print(f"   Blocked categories: {blocked_categories}")
+                print(f"   Safety ratings: {safety_ratings}")
+                print(f"   Partial content available: {bool(partial_content)}")
+                
+                # If we have partial content, try to use it
+                if partial_content and len(partial_content.strip()) > 50:
+                    print(f"⚠️  Using partial content (first {len(partial_content)} chars)")
+                    paragraph_text = partial_content.strip()
+                else:
+                    # No usable content - the prompt itself might be problematic
+                    print(f"💡 Suggestion: The Context Engineering template or prompt may contain words/phrases that trigger Gemini's hardcoded safety filters.")
+                    print(f"   Consider simplifying the prompt or checking the template for potentially problematic content.")
+                    raise ValueError(
+                        error_details + " "
+                        "The prompt itself may be triggering Gemini's system-level safety filters. "
+                        "Try simplifying the Context Engineering template or using different wording."
+                    )
+            
+            # Check if there's content in the response
+            if not candidate.content or not candidate.content.parts:
+                raise ValueError("Gemini API returned empty content. No text was generated.")
+            
+            # Extract text from the first part
+            paragraph_text = candidate.content.parts[0].text.strip()
+            
+            if not paragraph_text:
+                raise ValueError("Gemini API returned empty text content.")
+            
+            title = None
+            if para_type == ParagraphType.INTRO_GOAL:
+                if "Title:" in paragraph_text:
+                    parts = paragraph_text.split("\n", 1)
+                title = parts[0].replace("Title:", "").strip()
+                paragraph_text = parts[1].strip() if len(parts) > 1 else paragraph_text
+            
+            result = {
+                'paragraph_text': paragraph_text,
+                'paragraph_type': para_type.type_key,
+                'paragraph_index': para_type.index
             }
+            if title:
+                result['title'] = title
             
+            print(f"✅ Generated paragraph ({para_type.type_key}): {len(paragraph_text)} chars")
+            return result
+            
+        except ValueError as e:
+            # Handle safety filter blocks specifically
+            error_msg = str(e)
+            print(f"❌ Gemini safety filter or content issue: {error_msg}")
+            # Try to provide a helpful fallback message
+            if "safety" in error_msg.lower() or "blocked" in error_msg.lower():
+                print("💡 Tip: The prompt may have triggered safety filters. Try:")
+                print("   - Simplifying the prompt")
+                print("   - Using more neutral language")
+                print("   - Checking if the Context Engineering template is appropriate")
+            raise ValueError(f"Gemini generation failed: {error_msg}")
         except Exception as e:
-            print(f"Gemini generation failed: {e}. Falling back to template.")
-            return self._generate_with_template(theme, child_name, child_age, **kwargs)
+            print(f"❌ Gemini paragraph generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            raise

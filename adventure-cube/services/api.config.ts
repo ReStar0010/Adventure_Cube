@@ -25,6 +25,10 @@ export const API_CONFIG = {
         // Story endpoints
         STORIES: '/stories/',
         GENERATE_STORY: '/stories/generate/',
+        GENERATE_INTRO: '/stories/generate_intro/',
+        GENERATE_REMAINING: '/stories/{id}/generate_remaining/',
+        GET_STORY_STATUS: '/stories/{id}/get_status/',
+        GET_PARAGRAPH: '/stories/{id}/paragraphs/{index}/',
 
         // TTS endpoint
         GENERATE_AUDIO: '/tts/generate/',

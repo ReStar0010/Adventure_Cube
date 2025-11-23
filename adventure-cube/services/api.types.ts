@@ -2,6 +2,18 @@
  * Backend API types matching Django models
  */
 
+export interface StoryParagraph {
+    id: string;
+    paragraph_index: number;
+    paragraph_type: 'intro_goal' | 'problem_obstacle' | 'effort_effort' | 'climax_climax' | 'ending_ending';
+    text: string;
+    tts_url?: string;
+    tts_duration_seconds?: number;
+    is_generated: boolean;
+    is_ready: boolean;
+    generated_at?: string;
+}
+
 export interface BackendStory {
     id: string;
     title: string;
@@ -14,6 +26,11 @@ export interface BackendStory {
     character?: string;
     background?: string;
     key_items?: string[];
+    generation_status?: 'pending' | 'generating_intro' | 'intro_ready' | 'generating_remaining' | 'completed';
+    context_template?: string;
+    paragraphs?: StoryParagraph[];
+    paragraphs_ready?: number;
+    total_paragraphs?: number;
     created_at: string;
 }
 
@@ -25,6 +42,7 @@ export interface StoryGenerateRequest {
     character?: string;
     background?: string;
     key_items?: string[];
+    context_template?: string;
 }
 
 export interface AudioFile {
