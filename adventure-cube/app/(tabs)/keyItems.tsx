@@ -80,8 +80,8 @@ export default function KeyItemsScreen() {
             // Update current story
             await StorageManager.setCurrentStory(currentStory);
 
-            // Navigate back to library
-            router.push('/story');
+            // Navigate to confirmation screen
+            router.push('/confirm-story');
         } catch (error) {
             console.error('Failed to save key items selection:', error);
         }

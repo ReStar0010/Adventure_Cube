@@ -22,6 +22,7 @@
     "@tamagui/metro-plugin": "^1.132.23",
     "@tamagui/portal": "^1.132.23",
     "expo": "54.0.23",
+    "expo-av": "~15.0.1",
     "expo-constants": "~18.0.8",
     "expo-font": "~14.0.8",
     "expo-haptics": "~15.0.7",

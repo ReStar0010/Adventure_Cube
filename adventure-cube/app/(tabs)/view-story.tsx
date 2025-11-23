@@ -86,6 +86,8 @@ export default function ViewStoryScreen() {
                     <Text color="#404040" mt={8} style={{ textAlign: 'center' }}>
                         {currentStory.generatedStory || "Story content not available"}
                     </Text>
+                    
+                    {/* TODO: Add paragraph-by-paragraph display for saved stories */}
 
                     {/* Show saved story indicator */}
                     {currentStory.generatedStory && (

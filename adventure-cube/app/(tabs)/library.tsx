@@ -227,9 +227,19 @@ export default function LibraryScreen() {
           style: "destructive",
           onPress: async () => {
             try {
+              // Delete from backend if story has backend ID
+              if (story.id && story.id.length > 10) {
+                try {
+                  await StoryService.deleteStory(story.id);
+                } catch (backendError) {
+                  console.warn("Backend delete failed, continuing with local delete:", backendError);
+                }
+              }
+              // Delete from local storage
               await StorageManager.deleteStory(story.id);
               setEditDialogOpen(false);
-              setStories(stories.filter((s) => s.id !== story.id));
+              // Reload stories from backend
+              await loadStories();
             } catch (error) {
               console.error("Failed to delete story:", error);
               Alert.alert("Error", "Failed to delete story");

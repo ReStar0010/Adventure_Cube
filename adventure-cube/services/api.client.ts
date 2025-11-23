@@ -6,6 +6,7 @@
 import { API_CONFIG, getBaseUrl } from './api.config';
 import type {
     BackendStory,
+    StoryParagraph,
     StoryGenerateRequest,
     AudioFile,
     TTSGenerateRequest,
@@ -77,13 +78,52 @@ class ApiClient {
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                const errorData: ApiError = await response.json().catch(() => ({
-                    error: `HTTP ${response.status}: ${response.statusText}`,
-                }));
-                throw new Error(errorData.error || `Request failed with status ${response.status}`);
+                // Read response as text first (can only read once)
+                const responseText = await response.text();
+                let errorData: ApiError;
+                
+                // Try to parse as JSON
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch {
+                    // If not JSON, use text as error message
+                    errorData = {
+                        error: responseText || `HTTP ${response.status}: ${response.statusText}`,
+                        details: responseText
+                    };
+                }
+                
+                // Create a more detailed error message
+                const errorMessage = errorData.error || errorData.details || `Request failed with status ${response.status}`;
+                const error = new Error(errorMessage);
+                // Attach response data for better error handling
+                (error as any).response = { data: errorData, status: response.status };
+                throw error;
             }
 
-            return await response.json();
+            // Handle empty responses (e.g., 204 No Content for DELETE)
+            if (response.status === 204) {
+                return undefined as T;
+            }
+
+            // Get response text first to check if it's empty
+            const text = await response.text();
+            
+            // If empty, return undefined (for DELETE requests)
+            if (!text || text.trim() === '') {
+                return undefined as T;
+            }
+
+            // Try to parse as JSON
+            try {
+                return JSON.parse(text) as T;
+            } catch (parseError) {
+                // If parsing fails and it's a DELETE request, that's okay
+                if (options.method === 'DELETE') {
+                    return undefined as T;
+                }
+                throw new Error(`Failed to parse response as JSON: ${parseError}`);
+            }
         } catch (error) {
             clearTimeout(timeoutId);
 
@@ -121,6 +161,36 @@ class ApiClient {
         await this.fetch<void>(`${API_CONFIG.ENDPOINTS.STORIES}${id}/`, {
             method: 'DELETE',
         });
+    }
+
+    /**
+     * Two-stage story generation methods
+     */
+
+    async generateIntro(request: StoryGenerateRequest): Promise<BackendStory> {
+        return this.fetch<BackendStory>(API_CONFIG.ENDPOINTS.GENERATE_INTRO, {
+            method: 'POST',
+            body: JSON.stringify(request),
+        });
+    }
+
+    async generateRemaining(storyId: string): Promise<BackendStory> {
+        const endpoint = API_CONFIG.ENDPOINTS.GENERATE_REMAINING.replace('{id}', storyId);
+        return this.fetch<BackendStory>(endpoint, {
+            method: 'POST',
+        });
+    }
+
+    async getStoryStatus(storyId: string): Promise<BackendStory> {
+        const endpoint = API_CONFIG.ENDPOINTS.GET_STORY_STATUS.replace('{id}', storyId);
+        return this.fetch<BackendStory>(endpoint);
+    }
+
+    async getParagraph(storyId: string, paragraphIndex: number): Promise<StoryParagraph> {
+        const endpoint = API_CONFIG.ENDPOINTS.GET_PARAGRAPH
+            .replace('{id}', storyId)
+            .replace('{index}', paragraphIndex.toString());
+        return this.fetch<StoryParagraph>(endpoint);
     }
 
     /**
