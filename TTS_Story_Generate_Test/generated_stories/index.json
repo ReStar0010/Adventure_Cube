@@ -1,0 +1,96 @@
+{
+  "total_stories": 10,
+  "generated_at": "2025-11-16 20:02:24",
+  "stories": [
+    {
+      "index": 1,
+      "phase_id": "",
+      "theme": "自然",
+      "word_count": 2804,
+      "text_length": 3514,
+      "story_generation_time": 18.698530197143555,
+      "filename": "01_.json"
+    },
+    {
+      "index": 2,
+      "phase_id": "",
+      "theme": "自然",
+      "word_count": 2206,
+      "text_length": 2714,
+      "story_generation_time": 15.533350706100464,
+      "filename": "02_.json"
+    },
+    {
+      "index": 3,
+      "phase_id": "",
+      "theme": "自然",
+      "word_count": 4003,
+      "text_length": 4876,
+      "story_generation_time": 24.488444805145264,
+      "filename": "03_.json"
+    },
+    {
+      "index": 4,
+      "phase_id": "",
+      "theme": "冒險",
+      "word_count": 3261,
+      "text_length": 3979,
+      "story_generation_time": 23.24885106086731,
+      "filename": "04_.json"
+    },
+    {
+      "index": 5,
+      "phase_id": "",
+      "theme": "冒險",
+      "word_count": 2823,
+      "text_length": 3539,
+      "story_generation_time": 20.943952798843384,
+      "filename": "05_.json"
+    },
+    {
+      "index": 6,
+      "phase_id": "",
+      "theme": "冒險",
+      "word_count": 2910,
+      "text_length": 3591,
+      "story_generation_time": 21.58765196800232,
+      "filename": "06_.json"
+    },
+    {
+      "index": 7,
+      "phase_id": "",
+      "theme": "冒險",
+      "word_count": 3683,
+      "text_length": 4531,
+      "story_generation_time": 24.824030876159668,
+      "filename": "07_.json"
+    },
+    {
+      "index": 8,
+      "phase_id": "",
+      "theme": "冒險",
+      "word_count": 2981,
+      "text_length": 3607,
+      "story_generation_time": 20.38762593269348,
+      "filename": "08_.json"
+    },
+    {
+      "index": 9,
+      "phase_id": "",
+      "theme": "冒險",
+      "word_count": 3517,
+      "text_length": 4150,
+      "story_generation_time": 23.11986207962036,
+      "filename": "09_.json"
+    },
+    {
+      "index": 10,
+      "phase_id": "",
+      "theme": "冒險",
+      "word_count": 3527,
+      "text_length": 4057,
+      "story_generation_time": 20.596787929534912,
+      "filename": "10_.json"
+    }
+  ]
+}
