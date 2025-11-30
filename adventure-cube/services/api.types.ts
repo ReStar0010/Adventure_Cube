@@ -35,6 +35,7 @@ export interface BackendStory {
 }
 
 export interface StoryGenerateRequest {
+    title?: string;
     theme: string;
     child_name?: string;
     child_age?: number;

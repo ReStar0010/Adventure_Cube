@@ -23,6 +23,7 @@ export class StoryService {
         try {
             // Prepare request
             const request: StoryGenerateRequest = {
+                title: storyTitle,
                 theme: theme.name.toLowerCase(),
                 child_name: childName,
                 child_age: childAge,

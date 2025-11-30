@@ -64,6 +64,7 @@ class StorySerializer(serializers.ModelSerializer):
 class StoryGenerateRequestSerializer(serializers.Serializer):
     """Serializer for story generation request."""
     
+    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
     theme = serializers.CharField(required=True, max_length=100)
     child_name = serializers.CharField(required=False, allow_blank=True, max_length=100)
     child_age = serializers.IntegerField(required=False, min_value=1, max_value=15)
