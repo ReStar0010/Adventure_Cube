@@ -10,12 +10,8 @@
 export const API_CONFIG = {
     // Development URLs
     BASE_URL: __DEV__
-        ? 'http://10.0.2.2:8000/api'  // Android Emulator default
+        ? 'http://adcb.loca.lt/api'  // Android Emulator default
         : 'https://your-production-api.com/api',
-
-    // Alternative URLs for different platforms
-    IOS_BASE_URL: 'http://localhost:8000/api',
-    ANDROID_BASE_URL: 'http://10.0.2.2:8000/api',
 
     // Timeout settings
     TIMEOUT: 30000, // 30 seconds
@@ -48,24 +44,6 @@ export const API_CONFIG = {
  * Get the appropriate base URL based on platform
  */
 export const getBaseUrl = (): string => {
-    if (__DEV__) {
-        // Web browser
-        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-            return 'http://localhost:8000/api';
-        }
-        
-        // React Native - Android
-        try {
-            const { Platform } = require('react-native');
-            return Platform.OS === 'android' 
-                ? 'http://10.0.2.2:8000/api'
-                : 'http://localhost:8000/api';
-        } catch {
-            // Not React Native, likely web
-            return 'http://localhost:8000/api';
-        }
-    }
     
-    // Production
     return API_CONFIG.BASE_URL;
 };

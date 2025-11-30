@@ -447,13 +447,13 @@ class StoryGenerator:
             # Create model with system instruction and safety settings
             if safety_settings:
                 model = genai.GenerativeModel(
-                    'gemini-2.5-flash',
+                    'gemini-2.0-flash',
                     system_instruction=system_prompt,
                     safety_settings=safety_settings
                 )
             else:
                 model = genai.GenerativeModel(
-                    'gemini-2.5-flash',
+                    'gemini-2.0-flash',
                     system_instruction=system_prompt
                 )
             
@@ -552,8 +552,8 @@ class StoryGenerator:
             if para_type == ParagraphType.INTRO_GOAL:
                 if "Title:" in paragraph_text:
                     parts = paragraph_text.split("\n", 1)
-                title = parts[0].replace("Title:", "").strip()
-                paragraph_text = parts[1].strip() if len(parts) > 1 else paragraph_text
+                    title = parts[0].replace("Title:", "").strip()
+                    paragraph_text = parts[1].strip() if len(parts) > 1 else paragraph_text
             
             result = {
                 'paragraph_text': paragraph_text,

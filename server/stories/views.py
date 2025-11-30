@@ -116,9 +116,13 @@ class StoryViewSet(viewsets.ModelViewSet):
             )
             
             # Create Story instance
+            # Use user-provided title if available, otherwise fall back to LLM-generated title
+            user_title = data.get('title', '').strip()
+            story_title = user_title if user_title else intro_data.get('title', 'Untitled Story')
+            
             story = Story.objects.create(
                 user=request.user,
-                title=intro_data.get('title', 'Untitled Story'),
+                title=story_title,
                 body='',  # Will be built from paragraphs
                 theme=data['theme'],
                 child_name=data.get('child_name'),
