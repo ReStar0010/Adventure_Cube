@@ -23,10 +23,9 @@ class StoryParagraphSerializer(serializers.ModelSerializer):
     
     def get_tts_url(self, obj):
         """Get full URL for TTS audio file."""
-        request = self.context.get('request')
         if obj.tts_audio_file and hasattr(obj.tts_audio_file, 'url'):
-            if request:
-                return request.build_absolute_uri(obj.tts_audio_file.url)
+            # Return relative URL - frontend will prepend base URL
+            # This avoids issues with reverse proxies/tunnels like localtunnel
             return obj.tts_audio_file.url
         return None
     

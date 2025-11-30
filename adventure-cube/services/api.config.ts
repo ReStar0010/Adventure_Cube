@@ -7,11 +7,16 @@
 // - Android Emulator: use 10.0.2.2:8000
 // - iOS Simulator: use localhost:8000
 // - Physical Device: use your computer's IP address (e.g., 192.168.1.100:8000)
+const SERVER_URL = __DEV__
+    ? 'http://adcb.loca.lt'  // Development server
+    : 'https://your-production-api.com';
+
 export const API_CONFIG = {
-    // Development URLs
-    BASE_URL: __DEV__
-        ? 'http://adcb.loca.lt/api'  // Android Emulator default
-        : 'https://your-production-api.com/api',
+    // Server base URL (without /api)
+    SERVER_URL: SERVER_URL,
+    
+    // API base URL
+    BASE_URL: `${SERVER_URL}/api`,
 
     // Timeout settings
     TIMEOUT: 30000, // 30 seconds
@@ -44,6 +49,21 @@ export const API_CONFIG = {
  * Get the appropriate base URL based on platform
  */
 export const getBaseUrl = (): string => {
-    
     return API_CONFIG.BASE_URL;
+};
+
+/**
+ * Get the full URL for a media file (e.g., TTS audio)
+ * Handles both relative and absolute URLs
+ */
+export const getMediaUrl = (relativeUrl: string | undefined): string | undefined => {
+    if (!relativeUrl) return undefined;
+    
+    // If already an absolute URL, return as-is
+    if (relativeUrl.startsWith('http://') || relativeUrl.startsWith('https://')) {
+        return relativeUrl;
+    }
+    
+    // Prepend server URL to relative path
+    return `${API_CONFIG.SERVER_URL}${relativeUrl.startsWith('/') ? '' : '/'}${relativeUrl}`;
 };

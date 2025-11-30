@@ -315,6 +315,42 @@ class StoryGenerator:
         
         return prompt
     
+    def _clean_paragraph_text(self, text, para_type):
+        """
+        Clean up paragraph text by removing any instruction prefixes or labels
+        that the LLM might have accidentally included.
+        """
+        import re
+        
+        # Patterns to remove from the beginning of paragraphs
+        patterns_to_remove = [
+            # Remove "段落 X (type):" or "段落 X (type)：" patterns
+            r'^段落\s*\d+\s*\([^)]+\)\s*[:：]?\s*',
+            # Remove "**段落 X**:" patterns
+            r'^\*{0,2}段落\s*\d+\*{0,2}\s*[:：]?\s*',
+            # Remove paragraph type labels like "(problem_obstacle):" or "(出現了阻礙):"
+            r'^\([^)]+\)\s*[:：]?\s*',
+            # Remove type labels at the start like "Problem Obstacle:" or "出現了阻礙："
+            r'^(intro_goal|problem_obstacle|effort_effort|climax_climax|ending_ending)\s*[:：]?\s*',
+            r'^(故事的開端|出現了阻礙|努力的過程|故事的高潮|溫暖的結局)\s*[:：]?\s*',
+            # Remove bullet points or numbering at the start
+            r'^[-•]\s*',
+            r'^\d+\.\s*',
+        ]
+        
+        cleaned = text.strip()
+        for pattern in patterns_to_remove:
+            cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE | re.MULTILINE)
+        
+        # Also clean up any leading/trailing whitespace or newlines
+        cleaned = cleaned.strip()
+        
+        # If cleaning removed everything, return original
+        if not cleaned:
+            return text.strip()
+        
+        return cleaned
+    
     def _build_paragraph_prompt(self, para_type, previous_paragraphs, theme, child_name, child_age, template_data, **kwargs):
         """Build prompt for generating a specific paragraph."""
         name = child_name or "Your Hero"
@@ -547,6 +583,9 @@ class StoryGenerator:
             
             if not paragraph_text:
                 raise ValueError("Gemini API returned empty text content.")
+            
+            # Clean up any instruction prefixes that the LLM might have included
+            paragraph_text = self._clean_paragraph_text(paragraph_text, para_type)
             
             title = None
             if para_type == ParagraphType.INTRO_GOAL:
