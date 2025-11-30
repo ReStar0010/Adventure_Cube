@@ -27,6 +27,9 @@ export default function StoryScreen() {
   const [sound, setSound] = useState<any>(null);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
 
+  // Use ref to track sound for cleanup (avoids stale closure issues)
+  const soundRef = useRef<any>(null);
+
   // Track the last story ID to avoid unnecessary resets
   const lastStoryIdRef = useRef<string | null>(null);
 
@@ -96,14 +99,22 @@ export default function StoryScreen() {
     }, [loadCurrentStory])
   );
 
+  // Keep soundRef in sync with sound state
+  useEffect(() => {
+    soundRef.current = sound;
+  }, [sound]);
+
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      if (sound && sound.unloadAsync) {
-        sound.unloadAsync();
+      const currentSound = soundRef.current;
+      if (currentSound) {
+        console.log("🧹 Cleaning up audio on unmount");
+        currentSound.stopAsync().catch(() => {});
+        currentSound.unloadAsync().catch(() => {});
       }
     };
-  }, [sound]);
+  }, []);
 
   // Prevent back navigation while story is generating
   const navigation = useNavigation();
@@ -207,7 +218,7 @@ export default function StoryScreen() {
   // Helper function to safely stop and cleanup audio
   const cleanupAudio = async (soundToClean: any) => {
     if (!soundToClean) return;
-    
+
     try {
       const status = await soundToClean.getStatusAsync();
       if (status.isLoaded) {
@@ -219,7 +230,10 @@ export default function StoryScreen() {
       }
     } catch (e: any) {
       // Ignore "seeking interrupted" and similar errors during cleanup
-      if (!e?.message?.includes("seeking") && !e?.message?.includes("interrupt")) {
+      if (
+        !e?.message?.includes("seeking") &&
+        !e?.message?.includes("interrupt")
+      ) {
         console.log("Audio cleanup warning:", e?.message || e);
       }
     }
@@ -228,7 +242,7 @@ export default function StoryScreen() {
   const handlePlayAudio = async (paragraphIndex: number, audioUrl?: string) => {
     // Get the full URL for the audio file
     const fullAudioUrl = getMediaUrl(audioUrl);
-    
+
     if (!fullAudioUrl) {
       Alert.alert("提示", "此段落尚未生成音訊");
       return;
@@ -260,9 +274,11 @@ export default function StoryScreen() {
       }
 
       // If playing a different paragraph, stop the current one first
-      if (sound) {
+      const currentSound = soundRef.current || sound;
+      if (currentSound) {
         console.log("🛑 Stopping previous audio");
-        await cleanupAudio(sound);
+        await cleanupAudio(currentSound);
+        soundRef.current = null;
         setSound(null);
         setPlayingAudioIndex(null);
       }
@@ -281,8 +297,9 @@ export default function StoryScreen() {
         { uri: fullAudioUrl },
         { shouldPlay: true }
       );
-      
+
       console.log("🔊 Audio loaded, playing...");
+      soundRef.current = newSound;
       setSound(newSound);
       setPlayingAudioIndex(paragraphIndex);
       setIsLoadingAudio(false);
@@ -300,7 +317,7 @@ export default function StoryScreen() {
       console.error("Failed to play audio:", error);
       console.error("Audio URL was:", fullAudioUrl);
       console.error("Error details:", error?.message || error);
-      
+
       // Provide more detailed error message
       let errorMessage = "無法播放音訊";
       if (error?.message?.includes("-1100")) {
@@ -310,7 +327,7 @@ export default function StoryScreen() {
       } else if (error?.message) {
         errorMessage = `播放錯誤：${error.message}`;
       }
-      
+
       Alert.alert("錯誤", errorMessage);
     }
   };
@@ -322,8 +339,10 @@ export default function StoryScreen() {
     }
 
     // Stop current audio if playing before navigating
-    if (sound) {
-      await cleanupAudio(sound);
+    const currentSound = soundRef.current || sound;
+    if (currentSound) {
+      await cleanupAudio(currentSound);
+      soundRef.current = null;
       setSound(null);
       setPlayingAudioIndex(null);
     }
@@ -346,6 +365,22 @@ export default function StoryScreen() {
       );
       return;
     }
+
+    // Stop audio if playing before navigating - use both ref and state
+    const currentSound = soundRef.current || sound;
+    if (currentSound) {
+      console.log("🛑 Stopping audio before navigating to library");
+      try {
+        await currentSound.stopAsync();
+        await currentSound.unloadAsync();
+      } catch (e) {
+        console.log("Audio stop error (ignoring):", e);
+      }
+      soundRef.current = null;
+      setSound(null);
+      setPlayingAudioIndex(null);
+    }
+    setIsLoadingAudio(false);
 
     // Normal back to library
     try {
