@@ -1,11 +1,17 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { XStack, YStack, Text, H4, Button, Image } from "tamagui";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import { Story } from "../../types/Story";
 import { StorageManager } from "../../utils/storage";
 import { useStoryGeneration } from "../../hooks/use-story-generation";
-import { ActivityIndicator, ScrollView, Alert } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Alert,
+  BackHandler,
+} from "react-native";
 import { Play, Pause } from "lucide-react-native";
 import { Audio } from "expo-av";
 
@@ -14,30 +20,44 @@ export default function StoryScreen() {
   const router = useRouter();
   const [currentStory, setCurrentStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(true);
-  const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(null);
+  const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(
+    null
+  );
   const [sound, setSound] = useState<any>(null);
 
+  // Track the last story ID to avoid unnecessary resets
+  const lastStoryIdRef = useRef<string | null>(null);
+
   // Use the backend story generation hook
-  const { 
-    isGenerating, 
+  const {
+    isGenerating,
     isGeneratingRemaining,
-    error, 
-    backendData, 
+    error,
+    backendData,
     generateStory,
     currentParagraphIndex,
     paragraphs,
     goToNextParagraph,
-    goToPreviousParagraph
+    goToPreviousParagraph,
+    reset: resetGeneration,
   } = useStoryGeneration();
 
   const loadCurrentStory = useCallback(async () => {
     try {
       const story = await StorageManager.getCurrentStory();
-      console.log('📖 Loaded current story:', story?.storyTitle);
-      console.log('🎭 Story character:', story?.character?.name, story?.character);
-      console.log('🌍 Story background:', story?.background?.name);
-      console.log('🎨 Story theme:', story?.theme?.name);
-      console.log('🔑 Story key items:', story?.keyItems?.map(item => item.name));
+      console.log("📖 Loaded current story:", story?.storyTitle);
+      console.log(
+        "🎭 Story character:",
+        story?.character?.name,
+        story?.character
+      );
+      console.log("🌍 Story background:", story?.background?.name);
+      console.log("🎨 Story theme:", story?.theme?.name);
+      console.log(
+        "🔑 Story key items:",
+        story?.keyItems?.map((item) => item.name)
+      );
+
       setCurrentStory(story);
     } catch (error) {
       console.error("Failed to load current story:", error);
@@ -46,7 +66,22 @@ export default function StoryScreen() {
     }
   }, []);
 
-  // Load story on mount and when screen is focused
+  // Reset generation state when story changes (different story ID and not yet generated)
+  useEffect(() => {
+    if (currentStory && currentStory.id !== lastStoryIdRef.current) {
+      // Story ID changed - check if we need to reset
+      if (!currentStory.generatedStory) {
+        console.log(
+          "🔄 Resetting generation state for new story:",
+          currentStory.id
+        );
+        resetGeneration();
+      }
+      lastStoryIdRef.current = currentStory.id;
+    }
+  }, [currentStory, resetGeneration]);
+
+  // Load story on mount
   useEffect(() => {
     loadCurrentStory();
   }, [loadCurrentStory]);
@@ -54,7 +89,7 @@ export default function StoryScreen() {
   // Reload story when screen is focused (in case it was updated in another screen)
   useFocusEffect(
     useCallback(() => {
-      console.log('📱 Story screen focused, reloading story...');
+      console.log("📱 Story screen focused, reloading story...");
       loadCurrentStory();
     }, [loadCurrentStory])
   );
@@ -67,6 +102,43 @@ export default function StoryScreen() {
       }
     };
   }, [sound]);
+
+  // Prevent back navigation while story is generating
+  const navigation = useNavigation();
+  const isGeneratingAny = isGenerating || isGeneratingRemaining;
+
+  // Handle Android hardware back button
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (isGeneratingAny) {
+          Alert.alert(
+            "故事生成中",
+            "故事正在生成中，請等待生成完成後再離開此頁面。",
+            [{ text: "知道了", style: "default" }]
+          );
+          return true; // Prevent default back behavior
+        }
+        return false; // Allow default back behavior
+      }
+    );
+
+    return () => backHandler.remove();
+  }, [isGeneratingAny]);
+
+  // Prevent gesture/navigation-based back while generating
+  useEffect(() => {
+    if (isGeneratingAny) {
+      navigation.setOptions({
+        gestureEnabled: false,
+      });
+    } else {
+      navigation.setOptions({
+        gestureEnabled: true,
+      });
+    }
+  }, [isGeneratingAny, navigation]);
 
   // Save story when backend data is available
   useEffect(() => {
@@ -103,13 +175,16 @@ export default function StoryScreen() {
     }
 
     try {
-      console.log('🚀 Generating story with:');
-      console.log('   Title:', currentStory.storyTitle);
-      console.log('   Character:', currentStory.character?.name);
-      console.log('   Background:', currentStory.background?.name);
-      console.log('   Theme:', currentStory.theme?.name);
-      console.log('   Key Items:', currentStory.keyItems?.map(item => item.name));
-      
+      console.log("🚀 Generating story with:");
+      console.log("   Title:", currentStory.storyTitle);
+      console.log("   Character:", currentStory.character?.name);
+      console.log("   Background:", currentStory.background?.name);
+      console.log("   Theme:", currentStory.theme?.name);
+      console.log(
+        "   Key Items:",
+        currentStory.keyItems?.map((item) => item.name)
+      );
+
       // Call the backend to generate the story
       await generateStory(
         currentStory.storyTitle,
@@ -173,13 +248,13 @@ export default function StoryScreen() {
     }
   };
 
-  const handlePreviousNext = (direction: 'prev' | 'next') => {
+  const handlePreviousNext = (direction: "prev" | "next") => {
     if (isGenerating || isGeneratingRemaining) {
       Alert.alert("故事生成中", "故事正在生成中，請稍候...");
       return;
     }
 
-    if (direction === 'prev') {
+    if (direction === "prev") {
       goToPreviousParagraph();
     } else {
       goToNextParagraph();
@@ -187,27 +262,12 @@ export default function StoryScreen() {
   };
 
   const handleBackToLibrary = async () => {
-    // If story is generating, show warning
+    // If story is generating, prevent navigation completely
     if (isGenerating || isGeneratingRemaining) {
       Alert.alert(
-        "返回首頁",
-        "故事正在生成中，返回首頁後可以刪除這個故事。確定要返回嗎？",
-        [
-          { text: "取消", style: "cancel" },
-          {
-            text: "返回",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                await StorageManager.clearCurrentStory();
-                router.replace("/(tabs)/library");
-              } catch (error) {
-                console.error("Failed to clear current story cache:", error);
-                router.replace("/(tabs)/library");
-              }
-            }
-          }
-        ]
+        "故事生成中",
+        "故事正在生成中，請等待生成完成後再離開此頁面。",
+        [{ text: "知道了", style: "default" }]
       );
       return;
     }
@@ -298,7 +358,9 @@ export default function StoryScreen() {
           {isGeneratingRemaining && (
             <YStack mt={8} style={{ alignItems: "center" }}>
               <Text color="#666" fontSize={12}>
-                Generating remaining paragraphs... ({backendData?.paragraphs_ready || 0}/{backendData?.total_paragraphs || 5})
+                Generating remaining paragraphs... (
+                {backendData?.paragraphs_ready || 0}/
+                {backendData?.total_paragraphs || 5})
               </Text>
             </YStack>
           )}
@@ -322,8 +384,8 @@ export default function StoryScreen() {
                 <>
                   {/* Current paragraph */}
                   <YStack mt={8} width="100%" ai="center">
-                    <Text 
-                      color="#404040" 
+                    <Text
+                      color="#404040"
                       px={16}
                       fontSize={16}
                       lineHeight={24}
@@ -331,17 +393,19 @@ export default function StoryScreen() {
                     >
                       {paragraphs[currentParagraphIndex]?.text || "Loading..."}
                     </Text>
-                    
+
                     {/* TTS Playback Button */}
                     {paragraphs[currentParagraphIndex]?.tts_url && (
                       <Button
                         mt={12}
                         bg="#5A9FD4"
                         color="white"
-                        onPress={() => handlePlayAudio(
-                          currentParagraphIndex,
-                          paragraphs[currentParagraphIndex]?.tts_url
-                        )}
+                        onPress={() =>
+                          handlePlayAudio(
+                            currentParagraphIndex,
+                            paragraphs[currentParagraphIndex]?.tts_url
+                          )
+                        }
                       >
                         {playingAudioIndex === currentParagraphIndex ? (
                           <XStack gap={8} ai="center">
@@ -357,13 +421,23 @@ export default function StoryScreen() {
                       </Button>
                     )}
                   </YStack>
-                  
+
                   {/* Paragraph navigation */}
                   <XStack mt={16} gap={12} ai="center">
                     <Button
-                      onPress={() => handlePreviousNext('prev')}
-                      disabled={currentParagraphIndex === 0 || isGenerating || isGeneratingRemaining}
-                      opacity={currentParagraphIndex === 0 || isGenerating || isGeneratingRemaining ? 0.5 : 1}
+                      onPress={() => handlePreviousNext("prev")}
+                      disabled={
+                        currentParagraphIndex === 0 ||
+                        isGenerating ||
+                        isGeneratingRemaining
+                      }
+                      opacity={
+                        currentParagraphIndex === 0 ||
+                        isGenerating ||
+                        isGeneratingRemaining
+                          ? 0.5
+                          : 1
+                      }
                     >
                       上一段
                     </Button>
@@ -371,9 +445,19 @@ export default function StoryScreen() {
                       {currentParagraphIndex + 1} / {paragraphs.length}
                     </Text>
                     <Button
-                      onPress={() => handlePreviousNext('next')}
-                      disabled={currentParagraphIndex >= paragraphs.length - 1 || isGenerating || isGeneratingRemaining}
-                      opacity={currentParagraphIndex >= paragraphs.length - 1 || isGenerating || isGeneratingRemaining ? 0.5 : 1}
+                      onPress={() => handlePreviousNext("next")}
+                      disabled={
+                        currentParagraphIndex >= paragraphs.length - 1 ||
+                        isGenerating ||
+                        isGeneratingRemaining
+                      }
+                      opacity={
+                        currentParagraphIndex >= paragraphs.length - 1 ||
+                        isGenerating ||
+                        isGeneratingRemaining
+                          ? 0.5
+                          : 1
+                      }
                     >
                       下一段
                     </Button>
@@ -381,7 +465,8 @@ export default function StoryScreen() {
                 </>
               ) : (
                 <Text color="#404040" mt={8} style={{ textAlign: "center" }}>
-                  {backendData.body || "Press 'Generate Story' to create your adventure!"}
+                  {backendData.body ||
+                    "Press 'Generate Story' to create your adventure!"}
                 </Text>
               )}
             </YStack>
@@ -437,7 +522,7 @@ export default function StoryScreen() {
         bg="#d9d9d9"
         style={{ justifyContent: "center", alignItems: "center" }}
       >
-        <Button 
+        <Button
           onPress={handleBackToLibrary}
           disabled={isGenerating && !backendData}
         >
