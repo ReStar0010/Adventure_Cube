@@ -6,6 +6,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Story } from "../../types/Story";
 import { StorageManager } from "../../utils/storage";
 import { useStoryGeneration } from "../../hooks/use-story-generation";
+import { getMediaUrl } from "../../services/api.config";
 import {
   ActivityIndicator,
   ScrollView,
@@ -24,6 +25,7 @@ export default function StoryScreen() {
     null
   );
   const [sound, setSound] = useState<any>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
 
   // Track the last story ID to avoid unnecessary resets
   const lastStoryIdRef = useRef<string | null>(null);
@@ -202,23 +204,71 @@ export default function StoryScreen() {
     }
   };
 
+  // Helper function to safely stop and cleanup audio
+  const cleanupAudio = async (soundToClean: any) => {
+    if (!soundToClean) return;
+    
+    try {
+      const status = await soundToClean.getStatusAsync();
+      if (status.isLoaded) {
+        // Only try to stop if it's actually playing or paused
+        if (status.isPlaying) {
+          await soundToClean.stopAsync();
+        }
+        await soundToClean.unloadAsync();
+      }
+    } catch (e: any) {
+      // Ignore "seeking interrupted" and similar errors during cleanup
+      if (!e?.message?.includes("seeking") && !e?.message?.includes("interrupt")) {
+        console.log("Audio cleanup warning:", e?.message || e);
+      }
+    }
+  };
+
   const handlePlayAudio = async (paragraphIndex: number, audioUrl?: string) => {
-    if (!audioUrl) {
+    // Get the full URL for the audio file
+    const fullAudioUrl = getMediaUrl(audioUrl);
+    
+    if (!fullAudioUrl) {
       Alert.alert("提示", "此段落尚未生成音訊");
       return;
     }
 
+    // Don't allow new actions while loading
+    if (isLoadingAudio) {
+      return;
+    }
+
     try {
-      // Stop current audio if playing
-      if (sound) {
-        await sound.stopAsync();
-        await sound.unloadAsync();
-        setSound(null);
-        if (playingAudioIndex === paragraphIndex) {
-          setPlayingAudioIndex(null);
+      // If we have a sound loaded for this paragraph, toggle play/pause
+      if (sound && playingAudioIndex === paragraphIndex) {
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded) {
+          if (status.isPlaying) {
+            // Pause the audio
+            console.log("⏸️ Pausing audio");
+            await sound.pauseAsync();
+            setPlayingAudioIndex(null);
+          } else {
+            // Resume the audio
+            console.log("▶️ Resuming audio");
+            await sound.playAsync();
+            setPlayingAudioIndex(paragraphIndex);
+          }
           return;
         }
       }
+
+      // If playing a different paragraph, stop the current one first
+      if (sound) {
+        console.log("🛑 Stopping previous audio");
+        await cleanupAudio(sound);
+        setSound(null);
+        setPlayingAudioIndex(null);
+      }
+
+      console.log("🔊 Loading audio from:", fullAudioUrl);
+      setIsLoadingAudio(true);
 
       // Set audio mode for playback
       await Audio.setAudioModeAsync({
@@ -228,31 +278,56 @@ export default function StoryScreen() {
 
       // Load and play new audio
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
+        { uri: fullAudioUrl },
         { shouldPlay: true }
       );
+      
+      console.log("🔊 Audio loaded, playing...");
       setSound(newSound);
       setPlayingAudioIndex(paragraphIndex);
+      setIsLoadingAudio(false);
 
       // Clean up when finished
       newSound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
+          console.log("🏁 Audio finished playing");
           setPlayingAudioIndex(null);
-          newSound.unloadAsync();
-          setSound(null);
+          // Don't unload immediately to allow replay
         }
       });
-    } catch (error) {
+    } catch (error: any) {
+      setIsLoadingAudio(false);
       console.error("Failed to play audio:", error);
-      Alert.alert("錯誤", "無法播放音訊");
+      console.error("Audio URL was:", fullAudioUrl);
+      console.error("Error details:", error?.message || error);
+      
+      // Provide more detailed error message
+      let errorMessage = "無法播放音訊";
+      if (error?.message?.includes("-1100")) {
+        errorMessage = "找不到音檔。請確認伺服器已啟動且可存取媒體檔案。";
+      } else if (error?.message?.includes("-1009")) {
+        errorMessage = "網路連線失敗。請檢查網路連線。";
+      } else if (error?.message) {
+        errorMessage = `播放錯誤：${error.message}`;
+      }
+      
+      Alert.alert("錯誤", errorMessage);
     }
   };
 
-  const handlePreviousNext = (direction: "prev" | "next") => {
+  const handlePreviousNext = async (direction: "prev" | "next") => {
     if (isGenerating || isGeneratingRemaining) {
       Alert.alert("故事生成中", "故事正在生成中，請稍候...");
       return;
     }
+
+    // Stop current audio if playing before navigating
+    if (sound) {
+      await cleanupAudio(sound);
+      setSound(null);
+      setPlayingAudioIndex(null);
+    }
+    setIsLoadingAudio(false);
 
     if (direction === "prev") {
       goToPreviousParagraph();
@@ -400,6 +475,8 @@ export default function StoryScreen() {
                         mt={12}
                         bg="#5A9FD4"
                         color="white"
+                        disabled={isLoadingAudio}
+                        opacity={isLoadingAudio ? 0.7 : 1}
                         onPress={() =>
                           handlePlayAudio(
                             currentParagraphIndex,
@@ -407,7 +484,12 @@ export default function StoryScreen() {
                           )
                         }
                       >
-                        {playingAudioIndex === currentParagraphIndex ? (
+                        {isLoadingAudio ? (
+                          <XStack gap={8} ai="center">
+                            <ActivityIndicator size="small" color="white" />
+                            <Text color="white">載入中...</Text>
+                          </XStack>
+                        ) : playingAudioIndex === currentParagraphIndex ? (
                           <XStack gap={8} ai="center">
                             <Pause size={16} color="white" />
                             <Text color="white">暫停</Text>
