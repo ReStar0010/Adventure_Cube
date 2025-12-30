@@ -2,41 +2,14 @@
  * API Configuration for Adventure Cube Backend
  */
 
-import { Platform } from 'react-native';
-
-// Determine the correct backend URL based on platform
-// IMPORTANT: localhost on device/simulator refers to the DEVICE, not your computer!
-function getServerUrl(): string {
-    if (!__DEV__) {
-        // Production: use your production API URL
-        return 'https://your-production-api.com';
-    }
-    
-    // Development: choose based on platform
-    if (Platform.OS === 'android') {
-        // Android Emulator: use special IP that maps to host machine
-        return 'http://10.0.2.2:8000';
-    } else if (Platform.OS === 'ios') {
-        // iOS Simulator: can use localhost (shares network with Mac)
-        return 'http://localhost:8000';
-    } else {
-        // Web or other platforms
-        return 'http://localhost:8000';
-    }
-    
-    // For physical device testing, you MUST use your computer's IP:
-    // Uncomment and replace with YOUR computer's IP address:
-    // return 'http://192.168.0.153:8000';  // Replace with your actual IP
-}
-
-const SERVER_URL = getServerUrl();
-
-// Debug: Log the URL being used (remove in production)
-if (__DEV__) {
-    console.log('🔗 Backend URL configured:', SERVER_URL);
-    console.log('📱 Platform:', Platform.OS);
-    console.log('🌐 Full API URL:', `${SERVER_URL}/api`);
-}
+// Change this to your backend URL
+// For local development:
+// - Android Emulator: use 10.0.2.2:8000
+// - iOS Simulator: use localhost:8000
+// - Physical Device: use your computer's IP address (e.g., 192.168.1.100:8000)
+const SERVER_URL = __DEV__
+    ? 'http://localhost:8000'  // Development server - YOUR IP ADDRESS
+    : 'https://your-production-api.com';  // Production URL
 
 export const API_CONFIG = {
     // Server base URL (without /api)
