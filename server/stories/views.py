@@ -23,7 +23,7 @@ from .serializers import (
     UserRegisterSerializer,
     UserLoginSerializer
 )
-from .context_engineering import StoryStructure
+from .context_engineering import StoryStructure, get_paragraph_type_by_index
 from django.utils import timezone
 from .story_generator import StoryGenerator
 from .tts_service import TTSService
@@ -142,11 +142,14 @@ class StoryViewSet(viewsets.ModelViewSet):
                 language=data.get('language', 'zh-TW')
             )
             
+            # Get intro paragraph type based on template
+            intro_para_type = StoryStructure.get_intro_paragraph_type(story.context_template)
+            
             # Create StoryParagraph
             paragraph = StoryParagraph.objects.create(
                 story=story,
                 paragraph_index=0,
-                paragraph_type='intro_goal',
+                paragraph_type=intro_para_type.type_key,
                 text=intro_data['paragraph_text'],
                 is_generated=True,
                 generated_at=timezone.now()
@@ -225,18 +228,21 @@ class StoryViewSet(viewsets.ModelViewSet):
             # Get existing paragraphs
             existing_paragraphs = list(story.paragraphs.all().order_by('paragraph_index'))
             
-            # Generate remaining paragraphs (1-4)
-            for para_index in range(1, 5):
+            # Get total paragraph count for this template
+            total_paragraphs = StoryStructure.get_paragraph_count(story.context_template)
+            
+            # Generate remaining paragraphs (1 to total-1)
+            for para_index in range(1, total_paragraphs):
                 try:
                     # Generate paragraph
                     para_data = generator.generate_paragraph(
-                        story=story,
                         paragraph_index=para_index,
                         previous_paragraphs=existing_paragraphs,
                         theme=story.theme,
                         child_name=story.child_name,
                         child_age=story.child_age,
                         context_template=story.context_template,
+                        story=story,  # Pass story for backward compatibility (though not used)
                         character=story.character,
                         background=story.background,
                         key_items=story.key_items or []

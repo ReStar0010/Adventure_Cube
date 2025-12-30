@@ -56,7 +56,10 @@ class ContextTemplateLoader:
         print(f"   File size: {len(content)} chars")
         
         # Parse template
-        template_data = self._parse_template(content)
+        if template_name == '1106metaprompt' or template_name == '10min_basic':
+            template_data = self._parse_template(content, template_name)
+        else:
+            template_data = self._parse_template(content, template_name)
         
         print(f"✅ Template parsed successfully:")
         print(f"   System prompt: {len(template_data['system_prompt'])} chars")
@@ -68,7 +71,7 @@ class ContextTemplateLoader:
         
         return template_data
     
-    def _parse_template(self, content):
+    def _parse_template(self, content, template_name):
         """Parse markdown template content."""
         # Extract system prompt
         system_prompt_match = re.search(
@@ -87,7 +90,10 @@ class ContextTemplateLoader:
         user_prompt_template = user_prompt_match.group(1).strip() if user_prompt_match else ""
         
         # Extract story structure definitions
-        structure = self._extract_structure(content)
+        if template_name == '1106metaprompt' or template_name == '10min_basic':
+            structure = self._extract_structure(content, template_name)
+        else:
+            structure = self._extract_structure(content, template_name)
         
         return {
             'system_prompt': system_prompt,
@@ -95,24 +101,45 @@ class ContextTemplateLoader:
             'structure': structure
         }
     
-    def _extract_structure(self, content):
+    def _extract_structure(self, content, template_name):
         """Extract paragraph structure definitions from template."""
-        structure = {
-            'intro_goal': '',
-            'problem_obstacle': '',
-            'effort_effort': '',
-            'climax_climax': '',
-            'ending_ending': ''
-        }
+        if template_name == '1106metaprompt' or template_name == '10min_basic':
+            structure = {
+                'intro': '',
+                'problem_goal': '',
+                'effort_effort': '',
+                'result_result': '',
+                'surprise_surprise': '',
+                'turn_turn': '',
+                'ending_ending': ''
+            }
+            patterns = {
+                'intro': r'1\.\s*Intro[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n2\.|\Z)',
+                'problem_goal': r'2\.\s*Problem Goal[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n3\.|\Z)',
+                'effort_effort': r'3\.\s*Effort Effort[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n4\.|\Z)',
+                'result_result': r'4\.\s*Result Result[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n5\.|\Z)',
+                'surprise_surprise': r'5\.\s*Surprise Surprise[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n6\.|\Z)',
+                'turn_turn': r'6\.\s*Turn Turn[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n7\.|\Z)',
+                'ending_ending': r'7\.\s*Ending Ending[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\Z)',
+            }
+        else :
+            structure = {
+                'intro_goal': '',
+                'problem_obstacle': '',
+                'effort_effort': '',
+                'climax_climax': '',
+                'ending_ending': ''
+            }
+            # Pattern to match numbered list items with paragraph descriptions
+            patterns = {
+                'intro_goal': r'1\.\s*Intro Goal[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n2\.|\Z)',
+                'problem_obstacle': r'2\.\s*Problem Obstacle[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n3\.|\Z)',
+                'effort_effort': r'3\.\s*Effort Effort[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n4\.|\Z)',
+                'climax_climax': r'4\.\s*Climax Climax[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n5\.|\Z)',
+                'ending_ending': r'5\.\s*Ending Ending[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\Z)',
+            }
         
-        # Pattern to match numbered list items with paragraph descriptions
-        patterns = {
-            'intro_goal': r'1\.\s*Intro Goal[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n2\.|\Z)',
-            'problem_obstacle': r'2\.\s*Problem Obstacle[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n3\.|\Z)',
-            'effort_effort': r'3\.\s*Effort Effort[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n4\.|\Z)',
-            'climax_climax': r'4\.\s*Climax Climax[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\n5\.|\Z)',
-            'ending_ending': r'5\.\s*Ending Ending[：:]\s*\*\*(.*?)\*\*\.\s*(.*?)(?=\Z)',
-        }
+        
         
         for key, pattern in patterns.items():
             match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
