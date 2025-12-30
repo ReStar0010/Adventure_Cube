@@ -2,7 +2,14 @@
 Story generation service using Gemini API with Context Engineering templates.
 """
 from django.conf import settings
-from .context_engineering import ContextTemplateLoader, StoryStructure, ParagraphType
+from .context_engineering import (
+    ContextTemplateLoader, 
+    StoryStructure, 
+    ParagraphType,
+    ParagraphType7,
+    get_paragraph_type_by_index,
+    get_paragraph_type_by_key
+)
 
 
 # Character personalities mapping (Traditional Chinese)
@@ -189,7 +196,7 @@ class StoryGenerator:
             raise ValueError(f"Failed to load context template '{context_template}': {e}")
         
         # Build prompt for intro paragraph
-        prompt = self._build_intro_prompt(theme, child_name, child_age, template_data, **kwargs)
+        prompt = self._build_intro_prompt(theme, child_name, child_age, context_template, template_data, **kwargs)
         print(f"prompt: {prompt}")
         # Check if Gemini is configured
         if not settings.GEMINI_API_KEY:
@@ -201,22 +208,24 @@ class StoryGenerator:
         
         # Generate using Gemini
         print("🚀 Using Gemini for paragraph generation with Context Engineering template")
-        result = self._generate_paragraph_with_gemini(prompt, template_data['system_prompt'], ParagraphType.INTRO_GOAL)
+        # Get the correct intro paragraph type based on template
+        intro_para_type = StoryStructure.get_intro_paragraph_type(context_template)
+        result = self._generate_paragraph_with_gemini(prompt, template_data['system_prompt'], intro_para_type)
         
         return result
     
-    def generate_paragraph(self, story, paragraph_index, previous_paragraphs, theme, child_name=None, child_age=None, context_template='5min_basic', **kwargs):
+    def generate_paragraph(self, paragraph_index, previous_paragraphs, theme, child_name=None, child_age=None, context_template='5min_basic', story=None, **kwargs):
         """
         Generate a specific paragraph using previous paragraphs as context.
         
         Args:
-            story: Story model instance
-            paragraph_index: Index of paragraph to generate (1-4)
+            paragraph_index: Index of paragraph to generate (1-6 for 7-stage, 1-4 for 5-stage)
             previous_paragraphs: List of StoryParagraph instances (already generated)
             theme: Story theme
             child_name: Optional child's name
             child_age: Optional child's age
             context_template: Template name
+            story: Story model instance (optional, kept for backward compatibility but not used)
             **kwargs: Additional story elements
         
         Returns:
@@ -226,12 +235,10 @@ class StoryGenerator:
                 'paragraph_index': int
             }
         """
-        if paragraph_index < 1 or paragraph_index > 4:
-            raise ValueError("paragraph_index must be between 1 and 4")
-        
-        para_type = ParagraphType.get_by_index(paragraph_index)
+        para_type = get_paragraph_type_by_index(paragraph_index, context_template)
         if not para_type:
-            raise ValueError(f"Invalid paragraph_index: {paragraph_index}")
+            max_index = StoryStructure.get_paragraph_count(context_template) - 1
+            raise ValueError(f"Invalid paragraph_index: {paragraph_index} (must be 0-{max_index} for template '{context_template}')")
         
         # Load context template
         try:
@@ -242,7 +249,7 @@ class StoryGenerator:
         
         # Build prompt for this paragraph
         prompt = self._build_paragraph_prompt(
-            para_type, previous_paragraphs, theme, child_name, child_age, template_data, **kwargs
+            para_type, previous_paragraphs, theme, child_name, child_age, context_template, template_data, **kwargs
         )
         
         # Check if Gemini is configured
@@ -254,7 +261,7 @@ class StoryGenerator:
         
         return result
     
-    def _build_intro_prompt(self, theme, child_name, child_age, template_data, **kwargs):
+    def _build_intro_prompt(self, theme, child_name, child_age, context_template, template_data, **kwargs):
         """Build prompt for intro paragraph generation."""
         name = child_name or "小英雄"
         age = child_age or 5
@@ -287,8 +294,10 @@ class StoryGenerator:
             personality_list = "、".join(personalities)
             personality_text = f"\n角色性格特質：{personality_list}"
         
-        # Get structure instruction for intro
-        structure_instruction = template_data['structure'].get('intro_goal', '故事的開端(短篇)')
+        # Get structure instruction for intro based on template
+        is_7_stage = context_template in ('10min_basic', '1106metaprompt')
+        intro_structure_key = 'intro' if is_7_stage else 'intro_goal'
+        structure_instruction = template_data['structure'].get(intro_structure_key, '故事的開端(短篇)')
         
         # Build user prompt - replace placeholders manually since template uses [請在此填入...] format
         user_prompt = template_data['user_prompt_template']
@@ -303,9 +312,10 @@ class StoryGenerator:
         user_prompt = user_prompt.replace('[主角2]', name)
         
         # Add specific instruction for intro paragraph
+        intro_label = 'Intro' if is_7_stage else 'Intro Goal'
         prompt = f"""{user_prompt}
 
-**現在請生成第一段（Intro Goal）：**
+**現在請生成第一段（{intro_label}）：**
 - {structure_instruction}
 - 建立世界並介紹角色
 - 確立目標
@@ -331,8 +341,8 @@ class StoryGenerator:
             # Remove paragraph type labels like "(problem_obstacle):" or "(出現了阻礙):"
             r'^\([^)]+\)\s*[:：]?\s*',
             # Remove type labels at the start like "Problem Obstacle:" or "出現了阻礙："
-            r'^(intro_goal|problem_obstacle|effort_effort|climax_climax|ending_ending)\s*[:：]?\s*',
-            r'^(故事的開端|出現了阻礙|努力的過程|故事的高潮|溫暖的結局)\s*[:：]?\s*',
+            r'^(intro_goal|intro|problem_obstacle|problem_goal|effort_effort|climax_climax|result_result|surprise_surprise|turn_turn|ending_ending)\s*[:：]?\s*',
+            r'^(故事的開端|出現了阻礙|努力的過程|故事的高潮|溫暖的結局|寂靜中的頓悟|晴天霹靂|勝利的喜悅|第一次充滿創意的嘗試|打破這份平靜|溫暖如擁抱的結局|用生動的文字作畫|確立主角與[小道具]的關係|易懂獨特且生動的比喻)\s*[:：]?\s*',
             # Remove bullet points or numbering at the start
             r'^[-•]\s*',
             r'^\d+\.\s*',
@@ -351,9 +361,9 @@ class StoryGenerator:
         
         return cleaned
     
-    def _build_paragraph_prompt(self, para_type, previous_paragraphs, theme, child_name, child_age, template_data, **kwargs):
+    def _build_paragraph_prompt(self, para_type, previous_paragraphs, theme, child_name, child_age, context_template, template_data, **kwargs):
         """Build prompt for generating a specific paragraph."""
-        name = child_name or "Your Hero"
+        name = child_name or "小英雄"
         age = child_age or 5
         age = max(3, min(age, 10))
         
@@ -406,13 +416,24 @@ class StoryGenerator:
         structure_key = para_type.type_key
         structure_instruction = template_data['structure'].get(structure_key, para_type.chinese_name)
         
-        # Build paragraph-specific instruction
-        para_instructions = {
-            'problem_obstacle': '直接描述一個具體發生的事件作為阻礙',
-            'effort_effort': '描寫主角們想出的計畫和努力的過程',
-            'climax_climax': '這是克服困難的關鍵時刻',
-            'ending_ending': '描寫一個溫暖、有趣且充滿啟發的收尾'
-        }
+        # Build paragraph-specific instruction based on template
+        is_7_stage = context_template in ('10min_basic', '1106metaprompt')
+        if is_7_stage:
+            para_instructions = {
+                'problem_goal': '直接描述一個具體發生的事件作為阻礙',
+                'effort_effort': '描寫主角們想出的計畫和努力的過程',
+                'result_result': '這是克服困難的關鍵時刻',
+                'surprise_surprise': '就在主角們沉浸在勝利喜悅的頂點時，一個天翻覆地的意外發生了',
+                'turn_turn': '在經歷了滑稽的失敗後，主角們終於恍然大悟',
+                'ending_ending': '描寫一個溫暖、有趣且充滿啟發的收尾'
+            }
+        else:
+            para_instructions = {
+                'problem_obstacle': '直接描述一個具體發生的事件作為阻礙',
+                'effort_effort': '描寫主角們想出的計畫和努力的過程',
+                'climax_climax': '這是克服困難的關鍵時刻',
+                'ending_ending': '描寫一個溫暖、有趣且充滿啟發的收尾'
+            }
         specific_instruction = para_instructions.get(structure_key, '')
         
         prompt = f"""{user_prompt}
@@ -529,51 +550,6 @@ class StoryGenerator:
             print(f"🔍 DEBUG: Candidate finish_reason: {finish_reason}")
             print(f"🔍 DEBUG: Candidate safety_ratings: {safety_ratings}")
             
-            # Check finish_reason - 2 means SAFETY (blocked by safety filters)
-            # Even with BLOCK_NONE, Gemini may still block at system level
-            if finish_reason == 2:
-                # Get more details about what was blocked
-                blocked_categories = []
-                for rating in safety_ratings:
-                    if hasattr(rating, 'category') and hasattr(rating, 'probability'):
-                        if rating.probability >= 2:  # MEDIUM or HIGH
-                            blocked_categories.append(f"{rating.category} (probability: {rating.probability})")
-                
-                # Check if there's any partial content we can use
-                partial_content = None
-                if hasattr(candidate, 'content') and candidate.content:
-                    if hasattr(candidate.content, 'parts') and candidate.content.parts:
-                        for part in candidate.content.parts:
-                            if hasattr(part, 'text') and part.text:
-                                partial_content = part.text
-                                break
-                
-                error_details = "Content was blocked by Gemini's safety filters (even with BLOCK_NONE - system-level block)."
-                if blocked_categories:
-                    error_details += f" Blocked categories: {', '.join(blocked_categories)}"
-                else:
-                    error_details += " No specific category details available."
-                
-                print(f"❌ DEBUG: Safety filter triggered (system-level block)!")
-                print(f"   Finish reason: {finish_reason} (2 = SAFETY)")
-                print(f"   Blocked categories: {blocked_categories}")
-                print(f"   Safety ratings: {safety_ratings}")
-                print(f"   Partial content available: {bool(partial_content)}")
-                
-                # If we have partial content, try to use it
-                if partial_content and len(partial_content.strip()) > 50:
-                    print(f"⚠️  Using partial content (first {len(partial_content)} chars)")
-                    paragraph_text = partial_content.strip()
-                else:
-                    # No usable content - the prompt itself might be problematic
-                    print(f"💡 Suggestion: The Context Engineering template or prompt may contain words/phrases that trigger Gemini's hardcoded safety filters.")
-                    print(f"   Consider simplifying the prompt or checking the template for potentially problematic content.")
-                    raise ValueError(
-                        error_details + " "
-                        "The prompt itself may be triggering Gemini's system-level safety filters. "
-                        "Try simplifying the Context Engineering template or using different wording."
-                    )
-            
             # Check if there's content in the response
             if not candidate.content or not candidate.content.parts:
                 raise ValueError("Gemini API returned empty content. No text was generated.")
@@ -588,7 +564,8 @@ class StoryGenerator:
             paragraph_text = self._clean_paragraph_text(paragraph_text, para_type)
             
             title = None
-            if para_type == ParagraphType.INTRO_GOAL:
+            # Check for title in intro paragraphs (both 5-stage and 7-stage)
+            if para_type.index == 0:
                 if "Title:" in paragraph_text:
                     parts = paragraph_text.split("\n", 1)
                     title = parts[0].replace("Title:", "").strip()
