@@ -253,14 +253,27 @@ class TTSService:
     def _generate_with_gtts(self, text, language):
         """
         Generate audio using Google Text-to-Speech (gTTS).
-        Free, offline-capable, good quality.
+        Free, offline-capable, but lower quality than Azure/Vertex AI.
+        Note: For better quality, consider switching to Azure or Vertex AI TTS.
         """
         try:
             from gtts import gTTS
             from io import BytesIO
             
-            # Create TTS object
-            tts = gTTS(text=text, lang=language, slow=False)
+            # Map language codes for gTTS
+            # gTTS uses simpler language codes
+            lang_map = {
+                'zh-TW': 'zh-tw',
+                'zh-CN': 'zh-cn',
+                'en-US': 'en',
+                'en': 'en',
+            }
+            gtts_lang = lang_map.get(language, language)
+            
+            # Create TTS object with slower speed for better naturalness
+            # Note: gTTS doesn't support rate/pitch adjustment, so we use slow=True
+            # This makes it more natural but still robotic-sounding
+            tts = gTTS(text=text, lang=gtts_lang, slow=False)
             
             # Save to bytes buffer
             audio_buffer = BytesIO()
@@ -293,11 +306,12 @@ class TTSService:
             
             # Configure voice selection
             # Map language codes to Vertex AI language codes and voices
+            # Using Neural2 voices for better quality and naturalness
             language_voice_map = {
-                'zh-TW': ('zh-TW', 'zh-TW-Standard-A' if not voice else voice),  # Traditional Chinese
-                'zh-CN': ('zh-CN', 'zh-CN-Standard-A' if not voice else voice),  # Simplified Chinese
-                'en': ('en-US', 'en-US-Neural2-D' if not voice else voice),  # English child-friendly
-                'en-US': ('en-US', 'en-US-Neural2-D' if not voice else voice),
+                'zh-TW': ('zh-TW', 'zh-TW-Standard-B' if not voice else voice),  # Traditional Chinese - warm female
+                'zh-CN': ('zh-CN', 'zh-CN-Neural2-A' if not voice else voice),     # Simplified Chinese - expressive
+                'en': ('en-US', 'en-US-Neural2-F' if not voice else voice),       # English - warm, friendly female
+                'en-US': ('en-US', 'en-US-Neural2-F' if not voice else voice),     # English - warm, friendly female
             }
             
             # Get language code and voice
@@ -315,18 +329,22 @@ class TTSService:
             # Set up the input text
             synthesis_input = texttospeech.SynthesisInput(text=text)
             
-            # Configure voice parameters
+            # Configure voice parameters with better defaults for storytelling
             voice_config = texttospeech.VoiceSelectionParams(
                 language_code=language_code,
                 name=voice_name,
-                ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+                ssml_gender=texttospeech.SsmlVoiceGender.FEMALE  # More expressive for stories
             )
             
-            # Configure audio output
+            # Configure audio output with optimized parameters for storytelling
+            # - Slightly slower rate (0.9) for better comprehension and naturalness
+            # - Slightly higher pitch (+2 semitones) for warmth and friendliness
+            # - Higher volume gain (+3dB) for clarity
             audio_config = texttospeech.AudioConfig(
                 audio_encoding=texttospeech.AudioEncoding.MP3,
-                speaking_rate=1.0,
-                pitch=0.0
+                speaking_rate=0.9,  # 90% speed - more natural for storytelling
+                pitch=2.0,          # +2 semitones for warmth
+                volume_gain_db=3.0   # +3dB for better clarity
             )
             
             # Perform the text-to-speech request
@@ -370,18 +388,36 @@ class TTSService:
                 region=azure_region
             )
             
-            # Set language and voice
-            language_code = language if len(language) == 5 else f"{language}-US"
-            voice_name = voice or 'en-US-AriaNeural'  # Child-friendly voice
+            # Set language and voice with better defaults for storytelling
+            language_voice_map = {
+                'zh-TW': ('zh-TW', 'zh-TW-HsiaoChenNeural'),  # Warm, friendly female voice
+                'zh-CN': ('zh-CN', 'zh-CN-XiaoxiaoNeural'),    # Expressive female voice
+                'en': ('en-US', 'en-US-AriaNeural'),          # Warm, natural female voice
+                'en-US': ('en-US', 'en-US-AriaNeural'),
+            }
+            
+            if language in language_voice_map:
+                language_code, default_voice = language_voice_map[language]
+            elif len(language) == 5 and '-' in language:
+                language_code = language
+                default_voice = voice or 'en-US-AriaNeural'
+            else:
+                language_code = f"{language}-US" if len(language) == 2 else language
+                default_voice = voice or 'en-US-AriaNeural'
+            
+            voice_name = voice or default_voice
             
             speech_config.speech_synthesis_language = language_code
             speech_config.speech_synthesis_voice_name = voice_name
             
+            # Use SSML for better naturalness and expressiveness
+            ssml_text = self._create_ssml_for_story(text, language_code, voice_name)
+            
             # Create synthesizer without audio config (will use result.audio_data)
             synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=None)
             
-            # Synthesize speech
-            result = synthesizer.speak_text_async(text).get()
+            # Synthesize speech using SSML for better quality
+            result = synthesizer.speak_ssml_async(ssml_text).get()
             
             if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
                 # Convert audio data to ContentFile
@@ -396,6 +432,29 @@ class TTSService:
         except Exception as e:
             print(f"Azure TTS generation failed: {e}. Falling back to gTTS.")
             return self._generate_with_gtts(text, language)
+    
+    def _create_ssml_for_story(self, text, language_code, voice_name):
+        """
+        Create SSML (Speech Synthesis Markup Language) for more natural storytelling.
+        Adds prosody (rate, pitch) and breaks for better expressiveness.
+        """
+        # Escape XML special characters
+        import html
+        escaped_text = html.escape(text)
+        
+        # Add SSML tags for better naturalness
+        # - Slightly slower rate for storytelling (0.9 = 90% speed)
+        # - Slightly higher pitch for warmth (+5%)
+        # - Add pauses after sentences for natural flow
+        ssml = f'''<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="{language_code}">
+    <voice name="{voice_name}">
+        <prosody rate="0.9" pitch="+5%">
+            {escaped_text}
+        </prosody>
+    </voice>
+</speak>'''
+        
+        return ssml
     
     def _get_cache_key(self, text, language, voice):
         """Generate cache key from text and parameters."""

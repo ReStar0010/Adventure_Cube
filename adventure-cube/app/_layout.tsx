@@ -33,15 +33,23 @@ export default function RootLayout() {
     if (isLoading) return
 
     const inAuthGroup = segments[0] === 'login' || segments[0] === 'welcome'
+    const inTabsGroup = segments[0] === '(tabs)'
+    const currentTab = segments[1]
 
     if (!isAuthenticated && !inAuthGroup) {
       // User is not authenticated and not on auth pages, redirect to welcome
       router.replace('/welcome')
-    } else if (isAuthenticated && inAuthGroup) {
-      // User is authenticated but on auth pages, redirect to tabs
-      router.replace('/(tabs)/library')
+    } else if (isAuthenticated) {
+      // User is authenticated - redirect to library if on auth pages or index
+      if (inAuthGroup) {
+        // User is authenticated but on auth pages, redirect to library
+        router.replace('/(tabs)/library')
+      } else if (inTabsGroup && currentTab === 'index') {
+        // User is authenticated but on index page, redirect to library
+        router.replace('/(tabs)/library')
+      }
     }
-  }, [isAuthenticated, segments, isLoading])
+  }, [isAuthenticated, segments, isLoading, router])
 
   const checkAuth = async () => {
     try {

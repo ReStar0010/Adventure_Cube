@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import {
   Button,
@@ -17,13 +17,15 @@ import {
 } from "tamagui";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
-import { MoreVertical, Edit2, Trash2, LogOut } from "lucide-react-native";
+import { MoreVertical, Edit2, Trash2, LogOut, Play, Pause } from "lucide-react-native";
 import { Story } from "../../types/Story";
 import { StorageManager } from "../../utils/storage";
 import { StoryService, AuthService } from "../../services";
 import type { AuthUser } from "../../services";
 import { BACKGROUNDS, CHARACTERS, THEMES } from "../../constants/assets";
 import type { BackendStory } from "../../services/api.types";
+import { Audio } from "expo-av";
+import { getMediaUrl } from "../../services/api.config";
 
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
@@ -39,9 +41,25 @@ export default function LibraryScreen() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  
+  // Audio playback state
+  const [playingStoryId, setPlayingStoryId] = useState<string | null>(null);
+  const [sound, setSound] = useState<any>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
+  const soundRef = useRef<any>(null);
 
   useEffect(() => {
     checkAuthentication();
+    
+    // Cleanup audio on unmount
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch((e: any) => {
+          console.log("Audio cleanup warning:", e?.message || e);
+        });
+      }
+    };
   }, []);
 
   // Reload stories and check auth every time the screen is focused
@@ -250,7 +268,19 @@ export default function LibraryScreen() {
     );
   };
 
-  const handleLogout = async () => { 
+  const handleLogout = async () => {
+    // Stop audio before logout
+    if (soundRef.current) {
+      try {
+        await soundRef.current.unloadAsync();
+      } catch (e) {
+        console.log("Audio cleanup on logout:", e);
+      }
+      soundRef.current = null;
+      setSound(null);
+      setPlayingStoryId(null);
+    }
+    
     try {
       await AuthService.logout();
       setIsAuthenticated(false);
@@ -264,68 +294,219 @@ export default function LibraryScreen() {
     }
   };
 
-  const renderStoryCard = (story: Story) => (
-    <Card key={story.id} bg="white" width="100%">
-      <Card.Header>
-        <XStack justifyContent="space-between" alignItems="center">
-          <TouchableOpacity flex={1} onPress={() => handleStoryPress(story)}>
-            <H4 fontWeight="bold" color="#404040">
-              {story.storyTitle}
-            </H4>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleEditStory(story)} padding={8}>
-            <MoreVertical color="#666" size={20} />
-          </TouchableOpacity>
-        </XStack>
-      </Card.Header>
-      <TouchableOpacity onPress={() => handleStoryPress(story)}>
-        <Card.Footer>
-          <XStack
-            flex={1}
-            justifyContent="center"
-            alignItems="flex-start"
-            gap={12}
-          >
-            {story.background?.image && story.background.name && (
-              <YStack items="center" gap={4}>
-                <Image source={story.background.image} width={50} height={50} />
-                <H4 fontSize={10} color="#666" textAlign="center" width={60}>
-                  {story.background.name}
-                </H4>
-              </YStack>
-            )}
-            {story.character?.image && story.character.name && (
-              <YStack items="center" gap={4}>
-                <Image source={story.character.image} width={50} height={50} />
-                <H4 fontSize={10} color="#666" textAlign="center" width={60}>
-                  {story.character.name}
-                </H4>
-              </YStack>
-            )}
-            {story.theme?.image && story.theme.name && (
-              <YStack items="center" gap={4}>
-                <Image source={story.theme.image} width={50} height={50} />
-                <H4 fontSize={10} color="#666" textAlign="center" width={60}>
-                  {story.theme.name}
-                </H4>
-              </YStack>
-            )}
-            {story.keyItems?.length > 0 &&
-              story.keyItems.map((item, index) =>
-                item?.image && item.name ? (
-                  <YStack key={index} items="center" gap={4}>
-                    <Image source={item.image} width={40} height={40} />
-                    <H4 fontSize={9} color="#666" textAlign="center" width={50}>
-                      {item.name}
-                    </H4>
-                  </YStack>
-                ) : null
+  // Cleanup audio helper
+  const cleanupAudio = async (soundToClean: any) => {
+    try {
+      if (soundToClean) {
+        const status = await soundToClean.getStatusAsync();
+        if (status.isLoaded) {
+          await soundToClean.unloadAsync();
+        }
+      }
+    } catch (e: any) {
+      console.log("Audio cleanup warning:", e?.message || e);
+    }
+  };
+
+  const handlePlayAudio = async (story: Story) => {
+    // Don't allow new actions while loading
+    if (isLoadingAudio) {
+      return;
+    }
+
+    try {
+      // If we have a sound loaded for this story, toggle play/pause
+      if (sound && playingStoryId === story.id) {
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded) {
+          if (status.isPlaying) {
+            // Pause the audio
+            console.log("⏸️ Pausing audio");
+            await sound.pauseAsync();
+            setPlayingStoryId(null);
+          } else {
+            // Resume the audio
+            console.log("▶️ Resuming audio");
+            await sound.playAsync();
+            setPlayingStoryId(story.id);
+          }
+          return;
+        }
+      }
+
+      // If playing a different story, stop the current one first
+      const currentSound = soundRef.current || sound;
+      if (currentSound) {
+        console.log("🛑 Stopping previous audio");
+        await cleanupAudio(currentSound);
+        soundRef.current = null;
+        setSound(null);
+        setPlayingStoryId(null);
+      }
+
+      // Check if we already have audio URL for this story
+      let audioUrl = audioUrls[story.id];
+      
+      // If not, generate or get audio
+      if (!audioUrl) {
+        console.log("🔊 Generating/getting audio for story:", story.id);
+        setIsLoadingAudio(true);
+        
+        try {
+          // Generate or get audio from backend
+          audioUrl = await StoryService.generateAudio(story.id, 'zh-TW');
+          setAudioUrls(prev => ({ ...prev, [story.id]: audioUrl! }));
+        } catch (error: any) {
+          setIsLoadingAudio(false);
+          console.error("Failed to generate/get audio:", error);
+          Alert.alert("錯誤", "無法生成或取得音檔。請確認故事已完整生成。");
+          return;
+        }
+      }
+
+      // Get the full URL for the audio file
+      const fullAudioUrl = getMediaUrl(audioUrl);
+      
+      if (!fullAudioUrl) {
+        setIsLoadingAudio(false);
+        Alert.alert("錯誤", "無法取得音檔 URL");
+        return;
+      }
+
+      console.log("🔊 Loading audio from:", fullAudioUrl);
+      setIsLoadingAudio(true);
+
+      // Set audio mode for playback
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
+
+      // Load and play new audio
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: fullAudioUrl },
+        { shouldPlay: true }
+      );
+
+      console.log("🔊 Audio loaded, playing...");
+      soundRef.current = newSound;
+      setSound(newSound);
+      setPlayingStoryId(story.id);
+      setIsLoadingAudio(false);
+
+      // Clean up when finished
+      newSound.setOnPlaybackStatusUpdate((status: any) => {
+        if (status.isLoaded && status.didJustFinish) {
+          console.log("🏁 Audio finished playing");
+          setPlayingStoryId(null);
+        }
+      });
+    } catch (error: any) {
+      setIsLoadingAudio(false);
+      console.error("Failed to play audio:", error);
+      
+      let errorMessage = "無法播放音訊";
+      if (error?.message?.includes("-1100")) {
+        errorMessage = "找不到音檔。請確認伺服器已啟動且可存取媒體檔案。";
+      } else if (error?.message?.includes("-1009")) {
+        errorMessage = "網路連線失敗。請檢查網路連線。";
+      } else if (error?.message) {
+        errorMessage = `播放錯誤：${error.message}`;
+      }
+
+      Alert.alert("錯誤", errorMessage);
+    }
+  };
+
+  const renderStoryCard = (story: Story) => {
+    const isPlaying = playingStoryId === story.id;
+    const isThisStoryLoading = isLoadingAudio && playingStoryId === story.id;
+    
+    return (
+      <Card key={story.id} bg="white" width="100%">
+        <Card.Header>
+          <XStack justifyContent="space-between" alignItems="center">
+            <TouchableOpacity flex={1} onPress={() => handleStoryPress(story)}>
+              <H4 fontWeight="bold" color="#404040">
+                {story.storyTitle}
+              </H4>
+            </TouchableOpacity>
+            <XStack gap={8} alignItems="center">
+              {/* Audio play button */}
+              {story.generatedStory && (
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handlePlayAudio(story);
+                  }}
+                  disabled={isLoadingAudio}
+                  style={{ opacity: isLoadingAudio ? 0.7 : 1 }}
+                  padding={8}
+                >
+                  {isThisStoryLoading ? (
+                    <ActivityIndicator size="small" color="#5A9FD4" />
+                  ) : isPlaying ? (
+                    <Pause size={20} color="#5A9FD4" />
+                  ) : (
+                    <Play size={20} color="#5A9FD4" />
+                  )}
+                </TouchableOpacity>
               )}
+              <TouchableOpacity onPress={() => handleEditStory(story)} padding={8}>
+                <MoreVertical color="#666" size={20} />
+              </TouchableOpacity>
+            </XStack>
           </XStack>
-        </Card.Footer>
-      </TouchableOpacity>
-    </Card>
-  );
+        </Card.Header>
+        <TouchableOpacity onPress={() => handleStoryPress(story)}>
+          <Card.Footer>
+            <XStack
+              flex={1}
+              justifyContent="center"
+              alignItems="flex-start"
+              gap={12}
+            >
+              {story.background?.image && story.background.name && (
+                <YStack items="center" gap={4}>
+                  <Image source={story.background.image} width={50} height={50} />
+                  <H4 fontSize={10} color="#666" textAlign="center" width={60}>
+                    {story.background.name}
+                  </H4>
+                </YStack>
+              )}
+              {story.character?.image && story.character.name && (
+                <YStack items="center" gap={4}>
+                  <Image source={story.character.image} width={50} height={50} />
+                  <H4 fontSize={10} color="#666" textAlign="center" width={60}>
+                    {story.character.name}
+                  </H4>
+                </YStack>
+              )}
+              {story.theme?.image && story.theme.name && (
+                <YStack items="center" gap={4}>
+                  <Image source={story.theme.image} width={50} height={50} />
+                  <H4 fontSize={10} color="#666" textAlign="center" width={60}>
+                    {story.theme.name}
+                  </H4>
+                </YStack>
+              )}
+              {story.keyItems?.length > 0 &&
+                story.keyItems.map((item, index) =>
+                  item?.image && item.name ? (
+                    <YStack key={index} items="center" gap={4}>
+                      <Image source={item.image} width={40} height={40} />
+                      <H4 fontSize={9} color="#666" textAlign="center" width={50}>
+                        {item.name}
+                      </H4>
+                    </YStack>
+                  ) : null
+                )}
+            </XStack>
+          </Card.Footer>
+        </TouchableOpacity>
+      </Card>
+    );
+  };
 
   // Show loading spinner while checking auth or loading stories
   if (checkingAuth || (loading && stories.length === 0)) {
