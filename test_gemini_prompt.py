@@ -8,7 +8,7 @@ import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # Set your API key here or use environment variable
-GEMINI_API_KEY = ''
+GEMINI_API_KEY = 'REDACTED_GEMINI_API_KEY'
 
 system_prompt = """你是一位經驗豐富、備受讚譽的童書作者。你的寫作風格兼具專業的戲劇結構和天馬行空的童趣，擅長用生動的譬喻和幽默的橋段，來講述能讓孩子們開懷大笑又深受啟發的溫暖故事。
 

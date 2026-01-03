@@ -223,19 +223,45 @@ TTS_PROVIDER=gtts
 
 ### Enabling Premium TTS
 
-1. **OpenAI TTS:**
+**推薦：使用 Azure 或 Vertex AI 獲得更好的語音品質**
+
+1. **Azure Cognitive Services (推薦):**
+   ```env
+   TTS_PROVIDER=azure
+   AZURE_SPEECH_KEY=your-azure-key
+   AZURE_SPEECH_REGION=eastus
+   ```
+   Install: `pip install azure-cognitiveservices-speech`
+   - 高品質神經語音，聽起來更自然
+   - 免費額度：每月 50 萬字符
+   - 詳細配置請參考 `TTS_CONFIGURATION_GUIDE.md`
+
+2. **Google Vertex AI:**
+   ```env
+   TTS_PROVIDER=vertex_ai
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+   VERTEX_AI_PROJECT_ID=your-project-id
+   VERTEX_AI_LOCATION=us-central1
+   ```
+   Install: `pip install google-cloud-texttospeech`
+   - 高品質 Neural2 語音
+   - 免費額度：每月 400 萬字符
+   - 詳細配置請參考 `TTS_CONFIGURATION_GUIDE.md`
+
+3. **OpenAI TTS:**
    ```env
    TTS_PROVIDER=openai
    OPENAI_API_KEY=sk-...
    ```
 
-2. **ElevenLabs:**
+4. **ElevenLabs:**
    ```env
    TTS_PROVIDER=elevenlabs
    ELEVENLABS_API_KEY=...
    ```
-   
    Install: `pip install elevenlabs`
+
+**注意**：默認的 `gTTS` 是免費但品質較低。要獲得更好的語音品質，強烈建議切換到 Azure 或 Vertex AI。
 
 ## Database
 
