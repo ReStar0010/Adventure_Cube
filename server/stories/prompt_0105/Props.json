@@ -1,0 +1,31 @@
+[
+  {
+    "theme": "魔法王國",
+    "prop_name": "沒主見的羅盤\n(The Indecisive Compass)",
+    "prop_id": "PROP_MAGIC_01",
+    "prop_logic": "[Rule: Desire Oriented] 羅盤永遠不指向北方。它必須指向角色當下「心中最渴望的東西」（如：三明治、溫暖的床）。若角色感到困惑，羅盤會跟著一起旋轉直到暈倒。",
+    "comedy_scenario": "主角問：「巨龍在哪裡？」羅盤卻堅定地指向主角的背包（因為裡面有一顆被遺忘的糖果）。"
+  },
+  {
+    "theme": "魔法王國",
+    "prop_name": "誠實羽毛筆\n(The Honest Quill)",
+    "prop_id": "PROP_MAGIC_02",
+    "prop_logic": "[Rule: Brutal Honesty] 無法寫下謊言。當角色試圖吹牛時，筆會強行修正文字為角色的「內心獨白 (OS)」。也可作為「異種語言翻譯機」，將怪獸的吼叫翻譯成居家抱怨。",
+    "comedy_scenario": "勇敢的騎士試圖寫下戰書，結果筆不受控制地寫下：「拜託不要吃我，我一點都不好吃，而且我三天沒洗澡了。」"
+  },
+  {
+    "theme": "太空探險",
+    "prop_name": "萬能太空膠帶\n(The Galactic Duct Tape)",
+    "prop_id": "PROP_SPACE_01",
+    "prop_logic": "[Rule: Sticky Chaos] 在無重力環境下，膠帶具有極強的沾黏性與混亂屬性。它通常會把問題「黏住」而非修好，甚至能黏住抽象概念（如：把外星人的嘴黏住以停止爭吵）。",
+    "comedy_scenario": "船體漏氣時，玩家用膠帶封住，結果膠帶發出滑稽的放屁聲（漏氣聲變調），而且把負責修理的工程師黏在了天花板上。"
+  },
+  {
+    "theme": "太空探險",
+    "prop_name": "黑洞吸塵器\n(The Black Hole Vacuum)",
+    "prop_id": "PROP_SPACE_02",
+    "prop_logic": "[Rule: Abstract Suction] 它不吸實體垃圾，專門吸取「環境屬性」。可切換模式吸走：聲音（靜音）、色彩（黑白電影）、重力（漂浮）。若開啟「反向噴射」，會將剛吸入的屬性加倍噴出。",
+    "comedy_scenario": "遇到太吵的宇宙海盜，把他們的「聲音」吸走，讓他們只能演默劇，張大嘴巴卻沒聲音。"
+  }
+]
+
