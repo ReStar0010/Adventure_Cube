@@ -52,6 +52,47 @@ def get_phase_instruction(story_type, phase_name):
             return str(instructions) if instructions else ''
     return ''
 
+def get_phase_word_limit(story_type, phase_name):
+    """從短篇故事模板.json 提取特定 Phase 的字數限制
+    
+    Args:
+        story_type: 故事類型
+        phase_name: Phase 名稱（如 "Setup", "Twist", "Climax", "Ending"）
+    
+    Returns:
+        int: 該 Phase 的字數限制，如果找不到則返回 0
+    """
+    templates = load_json("短篇故事模板.json")
+    for row in templates:
+        story_type_match = row.get('story_type', '').strip() == story_type.strip()
+        phase_name_value = row.get('phase_name', '').strip()
+        phase_match = phase_name_value.startswith(phase_name.strip())
+        
+        if story_type_match and phase_match:
+            word_limit = row.get('word_limit', 0)
+            return int(word_limit) if word_limit else 0
+    return 0
+
+def get_total_word_limit(story_type):
+    """計算指定故事類型所有 Phase 的總字數限制
+    
+    Args:
+        story_type: 故事類型
+    
+    Returns:
+        int: 所有 Phase 的總字數限制
+    """
+    templates = load_json("短篇故事模板.json")
+    total = 0
+    
+    # 遍歷所有模板，找出屬於該故事類型的所有 phase
+    for row in templates:
+        if row.get('story_type', '').strip() == story_type.strip():
+            word_limit = row.get('word_limit', 0)
+            total += int(word_limit) if word_limit else 0
+    
+    return total
+
 
 def get_random_elements(story_type):
     """隨機選擇角色、道具、背景"""
@@ -138,18 +179,10 @@ def get_phase_summary(phase_instruction):
 def fill_template(template, story_type, elements):
     """填充模板變數"""
     # 載入 META prompt
-    meta_prompt_data = load_json("META_prompt.json")
-    # 將 META prompt 列表轉換為字串（提取所有 Prompt_Instruction）
-    meta_prompt_parts = []
-    if isinstance(meta_prompt_data, list):
-        for item in meta_prompt_data:
-            if isinstance(item, dict):
-                instruction = item.get('Prompt_Instruction', '').strip()
-                if instruction:  # 只添加非空的指令
-                    meta_prompt_parts.append(instruction)
-        meta_prompt = '\n'.join(meta_prompt_parts)
-    else:
-        meta_prompt = str(meta_prompt_data) if meta_prompt_data else ''
+    # 讀取 META prompt 的 markdown 文件
+    meta_prompt_path = os.path.join(DATA_FOLDER, "META_prompt.md")
+    with open(meta_prompt_path, encoding="utf-8") as f:
+        meta_prompt = f.read()
     
     theme = story_type
     
@@ -224,12 +257,12 @@ Output Story (AI 生成結果)
     return full_output
 
 
-def generate_with_gemini(user_prompt):
+def generate_with_gemini(user_prompt, max_words=0):
     """使用 Gemini 生成故事
     
     Args:
         user_prompt: 用戶提示詞（已包含 META prompt）
-        max_words: 目標字數（中文字）
+        max_words: 目標字數（中文字），0 表示不限制
     """
     genai.configure(api_key=GEMINI_API_KEY)
     
@@ -241,15 +274,20 @@ def generate_with_gemini(user_prompt):
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
     }
     
-    # 不設置 system_instruction，因為 META prompt 已經包含在 user_prompt 中
+    # 如果不設置 system_instruction，因為 META prompt 已經包含在 user_prompt 中
     model = genai.GenerativeModel(
         'gemini-2.0-flash',
         safety_settings=safety_settings
     )
     
- 
+    # 如果有字數限制，在 prompt 末尾添加字數要求
+    final_prompt = user_prompt
+    if max_words > 0:
+        word_limit_note = f"\n\n[重要] 請確保完整故事的總字數約為 {max_words} 字（中文字）。請嚴格控制字數，不要超過此限制。"
+        final_prompt = user_prompt + word_limit_note
+    
     response = model.generate_content(
-        user_prompt,
+        final_prompt,
         generation_config=genai.types.GenerationConfig(temperature=0.7)
     )
     
@@ -280,12 +318,19 @@ def main(story_type):
     filled_prompt = fill_template(template, story_type, elements)
     print(f"   ✓ 模板已填充 ({len(filled_prompt)} 字)")
     
+    # 3.5. 獲取字數限制
+    total_word_limit = get_total_word_limit(story_type)
+    if total_word_limit > 0:
+        print(f"   📏 目標總字數: {total_word_limit} 字（根據各 Phase 的 word_limit 計算）")
+    
     # 4. 生成故事
     print(f"\n{'='*80}")
     print("開始生成完整故事...")
+    if total_word_limit > 0:
+        print(f"目標字數: {total_word_limit} 字")
     print(f"{'='*80}\n")
     
-    story = generate_with_gemini(filled_prompt)
+    story = generate_with_gemini(filled_prompt, max_words=total_word_limit)
     
     # 5. 獲取主題
     theme = story_type
@@ -300,7 +345,17 @@ def main(story_type):
     print(formatted_output)
     
     print(f"\n{'='*80}")
-    print(f"✨ 完成! 總字數: {len(story)} 字")
+    print(f"✨ 完成! 總字數: {len(story)} 字", end="")
+    if total_word_limit > 0:
+        print(f" (目標: {total_word_limit} 字)")
+        if len(story) > total_word_limit:
+            print(f"⚠️  超過目標字數 {len(story) - total_word_limit} 字")
+        elif len(story) < total_word_limit * 0.8:
+            print(f"⚠️  低於目標字數 {total_word_limit - len(story)} 字")
+        else:
+            print("✓ 字數符合目標範圍")
+    else:
+        print()
     print(f"{'='*80}")
     
     # 8. 儲存到檔案（使用與示例相同的格式）
