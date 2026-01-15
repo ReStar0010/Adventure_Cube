@@ -2,11 +2,15 @@
 .DS_Store
 Thumbs.db
 *.swp
-
+.cursor
+.specify
 # IDE
 .vscode/
 .idea/
 *.sublime-*
+
+audio_output
+0110_Stroies
 
 # Environment files
 .env
@@ -21,4 +25,4 @@ yarn-error.log*
 
 # Dependencies (backup safety)
 node_modules/
-
+tts_experiments/

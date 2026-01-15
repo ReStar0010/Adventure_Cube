@@ -8,8 +8,8 @@
 // - iOS Simulator: use localhost:8000
 // - Physical Device: use your computer's IP address (e.g., 192.168.1.100:8000)
 const SERVER_URL = __DEV__
-    ? 'http://adcb.loca.lt'  // Development server
-    : 'https://your-production-api.com';
+    ? 'http://localhost:8000'  // Development server - YOUR IP ADDRESS
+    : 'https://your-production-api.com';  // Production URL
 
 export const API_CONFIG = {
     // Server base URL (without /api)

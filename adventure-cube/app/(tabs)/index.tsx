@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { YStack, H2, Text, Button } from 'tamagui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import StoryGenerationExample from '@/components/examples/StoryGenerationExample';
+import { AuthService } from '../../services';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [showExample, setShowExample] = useState(false);
+
+  // Check authentication and redirect to library if authenticated
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkAuthAndRedirect = async () => {
+        try {
+          await AuthService.initialize();
+          const isAuthenticated = await AuthService.isAuthenticated();
+          if (isAuthenticated) {
+            router.replace('/(tabs)/library');
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+        }
+      };
+      checkAuthAndRedirect();
+    }, [router])
+  );
 
   const handleGetStarted = () => {
     router.push('/library');
