@@ -9,6 +9,9 @@ Thumbs.db
 .idea/
 *.sublime-*
 
+audio_output
+0110_Stroies
+
 # Environment files
 .env
 .env.local
