@@ -1,206 +1,86 @@
 [
   {
-    "story_type": "adventure comdey",
+    "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_01",
     "phase_name": "Setup",
-    "prompt_instruction": [
-      "[Format: No Headers/Titles]",
-      "不要輸出「第一幕」或任何標題。直接開始講故事。",
-      "1. 感官開場：直接描述 {Location} 的觸覺或聲音特徵。",
-      "2. 特質受阻：主角 {Character_A} 想做一件事，但被環境阻礙。",
-      "3. 道具登場：夥伴 {Character_B} 興奮地拿出 {Prop}。"
-    ],
-    "word_limit": 200
+    "prompt_instruction": "[Format: No Headers/Titles]\n\n不要輸出「第一幕」或任何標題。直接開始講故事。\n\n1. 感官開場：直接描述 {Location} 的觸覺或聲音特徵。\n\n2. 特質受阻：主角 {Character_A} 想做一件事，但被環境阻礙。\n\n3. 道具登場：夥伴 {Character_B} 興奮地拿出 {Prop}。",
+    "word_limit": 150
   },
   {
-    "story_type": "adventure comdey",
+    "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_02",
     "phase_name": "Twist",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "不要換行太頻繁，保持語氣連貫。",
-      "1. 立即失敗：不需鋪陳，直接描述 {Prop} 失控的瞬間。",
-      "2. 物理糾纏：根據 {prop_logic}，描述兩人如何陷入混亂（如：黏在一起、飛在空中）。",
-      "3. 加速：用短促的句子增加緊張感。"
-    ],
-    "word_limit": 300
+    "prompt_instruction": "[Format: Continuous Text]\n\n不要換行太頻繁，保持語氣連貫。\n\n1. 立即失敗：不需鋪陳，直接描述 {Prop} 失控的瞬間。\n\n2. 物理糾纏：根據 {Prop_Logic}，描述兩人如何陷入混亂（如：黏在一起、飛在空中）。\n\n3. 加速：用短促的句子增加緊張感。",
+    "word_limit": 250
   },
   {
-    "story_type": "adventure comdey",
+    "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_03",
     "phase_name": "Climax",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 單一動作：描述那個「唯一」的意外動作（撞擊/反彈）。",
-      "2. 環境互動：該動作觸發了 {Location} 的一個機關。",
-      "3. 終點抵達：以滑稽的姿勢摔進目標區域。"
-    ],
-    "word_limit": 300
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 單一動作：描述那個「唯一」的意外動作（撞擊/反彈）。\n\n2. 環境互動：該動作觸發了 {Location} 的一個機關。\n\n3. 終點抵達：以滑稽的姿勢摔進目標區域。",
+    "word_limit": 250
   },
   {
-    "story_type": "adventure comdey",
+    "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_04",
     "phase_name": "Ending",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 狼狽落地：描述他們現在好笑的樣子。",
-      "2. 正面誤解：夥伴認為任務大成功。",
-      "3. 結束：用一句溫馨幽默的話作結。"
-    ],
-    "word_limit": 200
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 狼狽落地：描述他們現在好笑的樣子。\n\n2. 正面誤解：夥伴認為任務大成功。\n\n3. 結束：用一句溫馨幽默的話作結。",
+    "word_limit": 150
   },
   {
     "story_type": "Sharing",
     "phase_id": "Soc_Share_01",
     "phase_name": "Setup (獨佔的困境)",
-    "prompt_instruction": [
-      "[Format: No Headers]",
-      "1. 目標出現：在 {Location} 出現了一個巨大的、美味的或珍貴的物品（如：巨大的發光松果、傳說中的果凍）。",
-      "2. 獨佔慾：主角 {Character_A} 的 {Trait} 讓他想要獨吞這個東西，不願意分給 {Character_B}。",
-      "3. 物理阻礙：但該物品太重、太滑或機關太複雜，一個人根本拿不到。"
-    ],
-    "word_limit": 200
+    "prompt_instruction": "[Format: No Headers]\n\n1. 目標出現：在 {Location} 出現了一個巨大的、美味的或珍貴的物品（如：巨大的發光松果、傳說中的果凍）。\n\n2. 獨佔慾：主角 {Character_A} 的 {Trait} 讓他想要獨吞這個東西，不願意分給 {Character_B}。\n\n3. 物理阻礙：但該物品太重、太滑或機關太複雜，一個人根本拿不到。",
+    "word_limit": 150
   },
   {
     "story_type": "Sharing",
     "phase_id": "Soc_Share_02",
     "phase_name": "Twist (道具的綑綁)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 道具介入：{Character_B} 拿出 {Prop}，提議用它來「公平分配」或「幫忙搬運」。",
-      "2. 邏輯失控：根據 {prop_logic}，道具並沒有切分物品，反而把兩位主角「物理上連結在一起」（如：黏住、銬住、磁吸）。",
-      "3. 被迫同步：他們現在必須像「兩人三腳」一樣行動，場面極度混亂。"
-    ],
-    "word_limit": 300
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 道具介入：{Character_B} 拿出 {Prop}，提議用它來「公平分配」或「幫忙搬運」。\n\n2. 邏輯失控：根據 {Prop_Logic}，道具並沒有切分物品，反而把兩位主角**「物理上連結在一起」**（如：黏住、銬住、磁吸）。\n\n3. 被迫同步：他們現在必須像「兩人三腳」一樣行動，場面極度混亂。",
+    "word_limit": 250
   },
   {
     "story_type": "Sharing",
     "phase_id": "Soc_Share_03",
     "phase_name": "Climax (同步的節奏)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 混亂中的協調：起初他們互相拉扯（向左還是向右？），導致差點失去目標物。",
-      "2. 關鍵領悟：他們發現只有喊口號、同步動作，才能控制道具。",
-      "3. 合力一擊：兩人同時做了一個滑稽的動作，成功啟動機關或抓住了目標物。"
-    ],
-    "word_limit": 300
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 混亂中的協調：起初他們互相拉扯（向左還是向右？），導致差點失去目標物。\n\n2. 關鍵領悟：他們發現只有喊口號、同步動作，才能控制道具。\n\n3. 合力一擊：兩人同時做了一個滑稽的動作，成功啟動機關或抓住了目標物。",
+    "word_limit": 250
   },
   {
     "story_type": "Sharing",
     "phase_id": "Soc_Share_04",
     "phase_name": "Ending (共享的快樂)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 共享時刻：雖然是被迫的，但他們現在一起享用/持有了目標物。",
-      "2. 意外發現：{Character_A} 承認：「好吧，兩個人一起拿好像比較輕鬆（或比較好吃）。」",
-      "3. 尾聲：道具終於鬆開了，但他們決定繼續一起走。"
-    ],
-    "word_limit": 200
-  },
-  {
-    "story_type": "Bed Time",
-    "phase_id": "Bed_Gen_01",
-    "phase_name": "The Setup (沉睡的世界)",
-    "prompt_instruction": [
-      "[Format: No Headers] [Tone: Soothing]",
-      "1. 夜間轉化：描述 {Location} 在夜晚的樣子。將該地點的特徵轉化為「柔軟、沉睡」的版本（例如：堅硬的城堡變成了枕頭堡壘；吵鬧的工廠變成了打呼的機器）。",
-      "2. 微小願望：主角 {Character_A} 帶著沉默夥伴 {Character_B}，許下一個與該地點有關的天真願望（如：想幫月亮蓋被子）。"
-    ],
-    "word_limit": 100
-  },
-  {
-    "story_type": "Bed Time",
-    "phase_id": "Bed_Gen_02",
-    "phase_name": "The Prop (情緒轉化)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 發現道具：發現 {Prop}，但它呈現出一種柔和、休眠的狀態。",
-      "2. 轉化規則：設定 {Prop} 需要 {Theme: Positive Emotion}（如：笑聲、擁抱）作為啟動燃料。",
-      "3. 啟動：主角給予一點點情緒，道具發出微光，照亮了 {Location} 的一角。"
-    ],
-    "word_limit": 300
-  },
-  {
-    "story_type": "Bed Time",
-    "phase_id": "Bed_Gen_03",
-    "phase_name": "Interaction (夢境收集)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 環境互動：為了收集更多能量，主角與 {Location} 中擬人化的環境特徵互動（例如：安撫做惡夢的樹、幫焦慮的石頭按摩）。",
-      "2. 古怪NPC：引入該地點特有的生物或物件（如：森林裡的發光蘑菇、城堡裡的幽靈管家），透過溫柔互動獲得大量能量。"
-    ],
-    "word_limit": 300
-  },
-  {
-    "story_type": "Bed Time",
-    "phase_id": "Bed_Gen_04",
-    "phase_name": "The Magic (願望實現)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 共鳴：周圍環境與主角一起產生情緒共鳴。",
-      "2. 物理質變：能量爆發，{Location} 的物理法則變得像夢境一樣（例如：地面變軟、物體漂浮），將主角送往願望目的地。",
-      "3. 抵達：享受願望實現的寧靜時刻。"
-    ],
-    "word_limit": 150
-  },
-  {
-    "story_type": "Bed Time",
-    "phase_id": "Bed_Gen_05",
-    "phase_name": "Return (安心入睡)",
-    "prompt_instruction": [
-      "[Format: Continuous Text] [Tone: Fading out]",
-      "1. 回歸：一股溫柔的力量（風、水流、雲）將他們送回床上。",
-      "2. 內化：主角握著 {Prop}，理解到 {Theme} 的美好。",
-      "3. 入睡：在 {Location} 獨特的白噪音（如：海浪聲、風聲）中入睡。"
-    ],
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 共享時刻：雖然是被迫的，但他們現在一起享用/持有了目標物。\n\n2. 意外發現：**{Character_A}** 承認：「好吧，兩個人一起拿好像比較輕鬆（或比較好吃）。」\n\n3. 尾聲：道具終於鬆開了，但他們決定繼續一起走。",
     "word_limit": 150
   },
   {
     "story_type": "Nature",
     "phase_id": "Nat_Grow_01",
     "phase_name": "Setup (違背時序的願望)",
-    "prompt_instruction": [
-      "[Format: No Headers] [Tone: Rhythmic]",
-      "1. 自然背景：描述 {Location} 正處於一個緩慢的自然進程中（例如：花苞正要慢慢開、秋天的葉子正在掉落、冬天剛把種子埋進土裡）。強調這個過程是「急不得」的。",
-      "2. 急躁的主角：主角 {Character_A} 的 {Trait} 讓他無法忍受等待（如：想把花瓣掰開、想把葉子黏回去、想立刻吃到果實）。",
-      "3. 道具介入：夥伴 {Character_B} 拿出 {Prop}，提議用它來「加速時間」或「跳過季節」。"
-    ],
-    "word_limit": 300
+    "prompt_instruction": "[Format: No Headers] [Tone: Rhythmic]\n\n1. 自然背景：描述 {Location} 正處於一個緩慢的自然進程中（例如：花苞正要慢慢開、秋天的葉子正在掉落、冬天剛把種子埋進土裡）。強調這個過程是「急不得」的。\n\n2. 急躁的主角：主角 {Character_A} 的 {Trait} 讓他無法忍受等待（如：想把花瓣掰開、想把葉子黏回去、想立刻吃到果實）。\n\n3. 道具介入：夥伴 {Character_B} 拿出 {Prop}，提議用它來「加速時間」或「跳過季節」。",
+    "word_limit": 150
   },
   {
     "story_type": "Nature",
     "phase_id": "Nat_Grow_02",
     "phase_name": "Twist (催熟的代價)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 強制干預：他們啟動 {Prop} 試圖改變規律（如：用熱風吹花苞、用膠水黏葉子）。",
-      "2. 邏輯反噬：根據 {prop_logic}，道具雖然加速了過程，但結果卻是災難性的（如：花開了但變成巨大的食人花、果實長出來卻是苦的、葉子變成了石頭）。",
-      "3. 物理混亂：大自然因為被擾亂而變得瘋狂（藤蔓瘋長把兩人纏住、暴雪突然降臨）。"
-    ],
-    "word_limit": 300
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 強制干預：他們啟動 {Prop} 試圖改變規律（如：用熱風吹花苞、用膠水黏葉子）。\n\n2. 邏輯反噬：根據 {Prop_Logic}，道具雖然加速了過程，但結果卻是災難性的（如：花開了但變成巨大的食人花、果實長出來卻是苦的、葉子變成了石頭）。\n\n3. 物理混亂：大自然因為被擾亂而變得瘋狂（藤蔓瘋長把兩人纏住、暴雪突然降臨）。",
+    "word_limit": 250
   },
   {
     "story_type": "Nature",
     "phase_id": "Nat_Grow_03",
     "phase_name": "Climax (順應時節)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 停止催促：在混亂中，{Character_A} 發現強求的結果並不美好。他聽到了自然的呼吸聲。",
-      "2. 觀念轉折：他領悟到：「花有花開的時間。」他們反向操作 {Prop}，從「加速」變成「守護」（如：幫花擋風、給種子澆水）。",
-      "3. 自然的節奏：當他們慢下來，混亂停止了，取而代之的是一種和諧的律動（植物輕輕搖擺、雪花溫柔落下）。"
-    ],
-    "word_limit": 200
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 停止催促：在混亂中，{Character_A} 發現強求的結果並不美好。他聽到了自然的呼吸聲。\n\n2. 觀念轉折：他領悟到：「花有花開的時間。」他們反向操作 {Prop}，從「加速」變成「守護」（如：幫花擋風、給種子澆水）。\n\n3. 自然的節奏：當他們慢下來，混亂停止了，取而代之的是一種和諧的律動（植物輕輕搖擺、雪花溫柔落下）。",
+    "word_limit": 250
   },
   {
     "story_type": "Nature",
     "phase_id": "Nat_Grow_04",
     "phase_name": "Ending (時間的禮物)",
-    "prompt_instruction": [
-      "[Format: Continuous Text]",
-      "1. 真實的成果：因為願意等待，真正的成果終於出現了（花自然開了、果實真的熟了）。它比催熟的更美、更甜。",
-      "2. 感官享受：他們一起享受這個自然的禮物（聞花香、吃果實）。",
-      "3. 結尾：主角承認：「原來等待是值得的。」"
-    ],
-    "word_limit": 200
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. 真實的成果：因為願意等待，真正的成果終於出現了（花自然開了、果實真的熟了）。它比催熟的更美、更甜。\n\n2. 感官享受：他們一起享受這個自然的禮物（聞花香、吃果實）。\n\n3. 結尾：主角承認：「原來等待是值得的。」",
+    "word_limit": 150
   }
 ]

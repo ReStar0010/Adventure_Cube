@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-簡單故事生成器 - 使用 prompt_to_follow.txt 模板
-Simple story generator using prompt_to_follow.txt template
+簡單故事生成器 - 使用 prompt_to_follow.md 模板
+Simple story generator using prompt_to_follow.md template
 """
 import csv
 import json
@@ -25,8 +25,8 @@ def load_json(filename):
         return json.load(f)
 
 def load_template_file():
-    """載入 prompt_to_follow.txt 模板"""
-    template_path = os.path.join(DATA_FOLDER, "prompt_to_follow.txt")
+    """載入 prompt_to_follow.md 模板"""
+    template_path = os.path.join(DATA_FOLDER, "prompt_to_follow.md")
     with open(template_path, 'r', encoding='utf-8') as f:
         return f.read()
 
@@ -52,35 +52,30 @@ def get_phase_instruction(story_type, phase_name):
             return str(instructions) if instructions else ''
     return ''
 
-def get_phase_word_limit(story_type, phase_name):
-    """從短篇故事模板.json 提取特定 Phase 的字數限制
-    
-    Args:
-        story_type: 故事類型
-        phase_name: Phase 名稱（如 "Setup", "Twist", "Climax", "Ending"）
+def get_all_story_types():
+    """獲取所有可用的故事類型
     
     Returns:
-        int: 該 Phase 的字數限制，如果找不到則返回 0
+        list: 所有故事類型的列表
     """
     templates = load_json("短篇故事模板.json")
+    story_types = set()
+    
     for row in templates:
-        story_type_match = row.get('story_type', '').strip() == story_type.strip()
-        phase_name_value = row.get('phase_name', '').strip()
-        phase_match = phase_name_value.startswith(phase_name.strip())
-        
-        if story_type_match and phase_match:
-            word_limit = row.get('word_limit', 0)
-            return int(word_limit) if word_limit else 0
-    return 0
+        story_type = row.get('story_type', '').strip()
+        if story_type:
+            story_types.add(story_type)
+    
+    return sorted(list(story_types))
 
 def get_total_word_limit(story_type):
-    """計算指定故事類型所有 Phase 的總字數限制
+    """計算指定故事類型所有 Phase 的總字數限制（中文字）
     
     Args:
         story_type: 故事類型
     
     Returns:
-        int: 所有 Phase 的總字數限制
+        int: 所有 Phase 的總字數限制（中文字）
     """
     templates = load_json("短篇故事模板.json")
     total = 0
@@ -93,20 +88,90 @@ def get_total_word_limit(story_type):
     
     return total
 
-
-def get_random_elements(story_type):
-    """隨機選擇角色、道具、背景"""
-    # 載入資料（使用 JSON 格式）
+def get_character_by_id(character_id, persona_id):
+    """根據 character_id 和 persona_id 嚴格匹配角色
+    
+    Args:
+        character_id: 角色 ID (如 "C01")
+        persona_id: 人格 ID (如 "T01")
+    
+    Returns:
+        dict: 匹配的角色資料，如果找不到則返回 None
+    """
     characters = load_json("Character_Personas.json")
+    for char in characters:
+        if char.get('character_id', '') == character_id and char.get('persona_id', '') == persona_id:
+            return char
+    return None
+
+def get_location_by_id(world_id, location_id):
+    """根據 world_id 和 location_id 嚴格匹配地點
+    
+    Args:
+        world_id: 世界 ID (如 "W01")
+        location_id: 地點 ID (如 "A01")
+    
+    Returns:
+        dict: 匹配的地點資料，如果找不到則返回 None
+    """
+    locations = load_json("Location.json")
+    for loc in locations:
+        if loc.get('world_id', '') == world_id and loc.get('location_id', '') == location_id:
+            return loc
+    return None
+
+def get_prop_by_id(prop_id):
+    """根據 prop_id 嚴格匹配道具
+    
+    Args:
+        prop_id: 道具 ID (如 "K01")
+    
+    Returns:
+        dict: 匹配的道具資料，如果找不到則返回 None
+    """
     props = load_json("Props.json")
-    backgrounds = load_json("Location.json")
+    for prop in props:
+        if prop.get('prop_id', '') == prop_id:
+            return prop
+    return None
+
+def get_elements_by_id(char_a_id, char_a_trait, char_b_id, char_b_trait, world_id, location_id, prop_id):
+    """根據 ID 嚴格匹配角色、道具、背景
+    
+    Args:
+        char_a_id: 角色 A 的 character_id (如 "C01")
+        char_a_trait: 角色 A 的 persona_id (如 "T01")
+        char_b_id: 角色 B 的 character_id (如 "C02")
+        char_b_trait: 角色 B 的 persona_id (如 "T01")
+        world_id: 世界 ID (如 "W01")
+        location_id: 地點 ID (如 "A01")
+        prop_id: 道具 ID (如 "K01")
+    
+    Returns:
+        dict: 包含所有元素的字典，如果找不到任何元素則返回 None
+    """
+    # 載入資料
+    char_a = get_character_by_id(char_a_id, char_a_trait)
+    char_b = get_character_by_id(char_b_id, char_b_trait)
+    prop = get_prop_by_id(prop_id)
+    background = get_location_by_id(world_id, location_id)
     funny_incidents = load_json("Funny_incidents.json")
     
-    # 隨機選擇
-    char_a = random.choice(characters)
-    char_b = random.choice(characters)
-    prop = random.choice(props)
-    background = random.choice(backgrounds)
+    # 檢查是否所有元素都找到
+    if not char_a or not char_b or not prop or not background:
+        missing = []
+        if not char_a:
+            missing.append(f"角色 A ({char_a_id}{char_a_trait})")
+        if not char_b:
+            missing.append(f"角色 B ({char_b_id}{char_b_trait})")
+        if not prop:
+            missing.append(f"道具 ({prop_id})")
+        if not background:
+            missing.append(f"地點 ({world_id}{location_id})")
+        print(f"⚠️  警告: 找不到以下元素: {', '.join(missing)}")
+        return None
+    
+    # 隨機選擇一個喜劇手法（因為沒有 ID 系統）
     comedy = random.choice(funny_incidents)
     
     # 提取地點和環境特徵
@@ -115,17 +180,20 @@ def get_random_elements(story_type):
     location_name = location_full.split('(')[0].strip() if '(' in location_full else location_full
     sensory_detail = background.get('details', location_full)  # 使用 details 欄位作為環境特徵
     
-    # 隨機選擇 persona1 或 persona2
-    char_a_persona = random.choice([char_a.get('persona1', ''), char_a.get('persona2', '')])
-    char_b_persona = random.choice([char_b.get('persona1', ''), char_b.get('persona2', '')])
-    
     return {
-        'Hero_Info': f"{char_a.get('name', '小英雄')} ({char_a_persona})",
-        'Sidekick_Info': f"{char_b.get('name', '小夥伴')} ({char_b_persona})",
+        'Hero_Info': f"{char_a.get('name', '小英雄')} ({char_a.get('persona', '')})",
+        'Sidekick_Info': f"{char_b.get('name', '小夥伴')} ({char_b.get('persona', '')})",
         'Prop_Info': f"{prop.get('prop_name', '神奇道具')} (邏輯：{prop.get('prop_logic', '')})",
         'Location': location_name,
         'Sensory_Detail': sensory_detail,
         'Comedy': f"{comedy.get('trope', '')} ({comedy.get('description', '')})",
+        'char_a_id': char_a_id,
+        'char_a_trait': char_a_trait,
+        'char_b_id': char_b_id,
+        'char_b_trait': char_b_trait,
+        'world_id': world_id,
+        'location_id': location_id,
+        'prop_id': prop_id,
     }
 
 
@@ -258,7 +326,7 @@ Output Story (AI 生成結果)
 
 
 def generate_with_gemini(user_prompt, max_words=0):
-    """使用 Gemini 生成故事
+    """使用 Gemini 生成故事（繁體中文）
     
     Args:
         user_prompt: 用戶提示詞（已包含 META prompt）
@@ -284,7 +352,7 @@ def generate_with_gemini(user_prompt, max_words=0):
     final_prompt = user_prompt
     if max_words > 0:
         word_limit_note = f"\n\n[重要] 請確保完整故事的總字數約為 {max_words} 字（中文字）。請嚴格控制字數，不要超過此限制。"
-        final_prompt = user_prompt + word_limit_note
+        final_prompt = final_prompt + word_limit_note
     
     response = model.generate_content(
         final_prompt,
@@ -293,77 +361,228 @@ def generate_with_gemini(user_prompt, max_words=0):
     
     return response.candidates[0].content.parts[0].text.strip()
 
-def main(story_type):
-    """主程式"""
+def generate_single_story(story_type, char_a_id, char_a_trait, char_b_id, char_b_trait, 
+                         world_id, location_id, prop_id, template, output_dir=None):
+    """生成單一故事
+    
+    Args:
+        story_type: 故事類型
+        char_a_id, char_a_trait: 角色 A 的 ID 和特質
+        char_b_id, char_b_trait: 角色 B 的 ID 和特質
+        world_id, location_id: 世界和地點 ID
+        prop_id: 道具 ID
+        template: 已載入的模板
+        output_dir: 輸出目錄（可選）
+    
+    Returns:
+        bool: 是否成功生成
+    """
+    # 1. 根據 ID 獲取元素
+    elements = get_elements_by_id(char_a_id, char_a_trait, char_b_id, char_b_trait,
+                                  world_id, location_id, prop_id)
+    if not elements:
+        return False
+    
+    # 2. 填充模板
+    filled_prompt = fill_template(template, story_type, elements)
+    
+    # 3. 獲取字數限制
+    total_word_limit = get_total_word_limit(story_type)
+    
+    # 4. 生成故事
+    try:
+        story = generate_with_gemini(filled_prompt, max_words=total_word_limit)
+    except Exception as e:
+        print(f"   ❌ 生成失敗: {e}")
+        return False
+    
+    # 5. 格式化輸出
+    theme = story_type
+    formatted_output = format_output_file(story_type, elements, story, theme)
+    
+    # 6. 生成檔名（類似語音檔名格式）
+    # 格式: {主題}_{角色組合}_{背景}_{道具}_TW_V1.txt
+    char_combo = f"{char_a_id}{char_a_trait}_{char_b_id}{char_b_trait}"
+    location_combo = f"{world_id}{location_id}"
+    
+    # 根據故事類型生成主題代碼
+    story_type_lower = story_type.lower().replace(" ", "")
+    if "adventure" in story_type_lower or "comedy" in story_type_lower or "comdey" in story_type_lower:
+        theme_code = "ADV"
+    elif "sharing" in story_type_lower:
+        theme_code = "SOC"
+    elif "nature" in story_type_lower:
+        theme_code = "NAT"
+    else:
+        # 預設使用前三個大寫字母
+        theme_code = story_type.upper().replace(" ", "")[:3]
+    
+    filename = f"{theme_code}_{char_combo}_{location_combo}_{prop_id}_TW_V1.txt"
+    
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        filepath = os.path.join(output_dir, filename)
+    else:
+        filepath = filename
+    
+    # 7. 儲存檔案
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(formatted_output)
+    
+    # 8. 顯示進度（計算中文字數）
+    word_count = len(story) if story else 0
+    print(f"   ✓ [{char_combo}][{location_combo}][{prop_id}] 完成 - {word_count} 字")
+    
+    return True
+
+def get_all_character_combinations():
+    """自動生成所有可能的角色組合
+    
+    從所有角色中選擇 2 個，每個角色有 2 個特質選擇
+    例如：C01-C02, C01-C03, C01-C04, C02-C03, C02-C04, C03-C04
+    
+    Returns:
+        list: 所有角色組合的列表，每個元素為 (char_a_id, char_a_trait, char_b_id, char_b_trait)
+    """
+    characters = load_json("Character_Personas.json")
+    
+    # 獲取所有唯一的角色 ID
+    character_ids = sorted(set(char.get('character_id') for char in characters))
+    traits = ["T01", "T02"]  # 每個角色有兩個特質
+    
+    combinations = []
+    
+    # 生成所有角色對（不重複，順序不重要，但保持一致的順序）
+    for i, char_a_id in enumerate(character_ids):
+        for char_b_id in character_ids[i+1:]:  # 只與後面的角色配對，避免重複
+            # 為每對角色生成所有特質組合
+            for char_a_trait in traits:
+                for char_b_trait in traits:
+                    combinations.append((char_a_id, char_a_trait, char_b_id, char_b_trait))
+    
+    return combinations
+
+def generate_stories_for_type(story_type, template):
+    """為指定故事類型生成所有組合的故事
+    
+    Args:
+        story_type: 故事類型
+        template: 已載入的模板
+    
+    Returns:
+        tuple: (成功數量, 失敗數量, 輸出目錄)
+    """
     print(f"\n{'='*80}")
     print(f"📖 生成故事類型: {story_type}")
     print(f"{'='*80}\n")
     
-    # 1. 載入模板
-    print("⏳ 載入 prompt_to_follow.txt 模板...")
-    template = load_template_file()
-    print(f"   ✓ 已載入模板 ({len(template)} 字)")
+    # 1. 自動生成所有角色組合
+    character_combinations = get_all_character_combinations()
     
-    # 2. 隨機選擇元素
-    print("⏳ 隨機選擇故事元素...")
-    elements = get_random_elements(story_type)
-    print(f"   主角: {elements['Hero_Info']}")
-    print(f"   夥伴: {elements['Sidekick_Info']}")
-    print(f"   道具: {elements['Prop_Info'][:60]}...")
-    print(f"   地點: {elements['Location']}")
-    print(f"   喜劇手法: {elements['Comedy'][:60]}...")
+    # 背景：W01A01, W01A02, W02A01, W02A02
+    location_combinations = [
+        ("W01", "A01"),
+        ("W01", "A02"),
+        ("W02", "A01"),
+        ("W02", "A02"),
+    ]
     
-    # 3. 填充模板
-    print("\n⏳ 填充模板變數...")
-    filled_prompt = fill_template(template, story_type, elements)
-    print(f"   ✓ 模板已填充 ({len(filled_prompt)} 字)")
+    # 道具：K01, K02（不包括 K00，因為它不存在）
+    prop_ids = ["K01", "K02"]
     
-    # 3.5. 獲取字數限制
+    # 2. 計算總數
+    total_combinations = len(character_combinations) * len(location_combinations) * len(prop_ids)
+    print(f"📊 將生成 {total_combinations} 個故事組合")
+    print(f"   - 角色組合: {len(character_combinations)} 種")
+    print(f"   - 背景: {len(location_combinations)} 種")
+    print(f"   - 道具: {len(prop_ids)} 種")
+    
+    # 3. 獲取字數限制（中文字）
     total_word_limit = get_total_word_limit(story_type)
     if total_word_limit > 0:
-        print(f"   📏 目標總字數: {total_word_limit} 字（根據各 Phase 的 word_limit 計算）")
+        print(f"   📏 每個故事目標字數: {total_word_limit} 字")
     
-    # 4. 生成故事
+    # 4. 創建輸出目錄
+    output_dir = f"stories_{story_type.replace(' ', '_')}"
+    print(f"💾 輸出目錄: {output_dir}")
+    
+    # 5. 迭代生成所有組合
     print(f"\n{'='*80}")
-    print("開始生成完整故事...")
-    if total_word_limit > 0:
-        print(f"目標字數: {total_word_limit} 字")
+    print("開始生成故事...")
     print(f"{'='*80}\n")
     
-    story = generate_with_gemini(filled_prompt, max_words=total_word_limit)
+    success_count = 0
+    fail_count = 0
+    current = 0
     
-    # 5. 獲取主題
-    theme = story_type
+    for char_a_id, char_a_trait, char_b_id, char_b_trait in character_combinations:
+        for world_id, location_id in location_combinations:
+            for prop_id in prop_ids:
+                current += 1
+                char_combo = f"{char_a_id}{char_a_trait}_{char_b_id}{char_b_trait}"
+                location_combo = f"{world_id}{location_id}"
+                print(f"[{current}/{total_combinations}] 生成: {char_combo} + {location_combo} + {prop_id}...")
+                
+                success = generate_single_story(
+                    story_type, char_a_id, char_a_trait, char_b_id, char_b_trait,
+                    world_id, location_id, prop_id, template, output_dir
+                )
+                
+                if success:
+                    success_count += 1
+                else:
+                    fail_count += 1
     
-    # 6. 格式化輸出（與示例文件格式一致）
-    formatted_output = format_output_file(story_type, elements, story, theme)
-    
-    # 7. 顯示完整故事
+    # 6. 顯示總結
     print(f"\n{'='*80}")
-    print("📖 完整故事")
-    print(f"{'='*80}\n")
-    print(formatted_output)
-    
-    print(f"\n{'='*80}")
-    print(f"✨ 完成! 總字數: {len(story)} 字", end="")
-    if total_word_limit > 0:
-        print(f" (目標: {total_word_limit} 字)")
-        if len(story) > total_word_limit:
-            print(f"⚠️  超過目標字數 {len(story) - total_word_limit} 字")
-        elif len(story) < total_word_limit * 0.8:
-            print(f"⚠️  低於目標字數 {total_word_limit - len(story)} 字")
-        else:
-            print("✓ 字數符合目標範圍")
-    else:
-        print()
+    print(f"✨ {story_type} 完成!")
+    print(f"   ✓ 成功: {success_count} 個")
+    if fail_count > 0:
+        print(f"   ❌ 失敗: {fail_count} 個")
+    print(f"   📁 輸出目錄: {output_dir}")
     print(f"{'='*80}")
     
-    # 8. 儲存到檔案（使用與示例相同的格式）
-    filename = f"story_{story_type.replace(' ', '_')}.txt"
-    with open(filename, 'w', encoding='utf-8') as f:
-        f.write(formatted_output)
+    return success_count, fail_count, output_dir
+
+def main():
+    """主程式 - 自動生成所有故事類型的所有組合"""
+    print(f"\n{'='*80}")
+    print("🚀 短篇故事生成器 - 自動生成所有組合")
+    print(f"{'='*80}\n")
     
-    print(f"\n💾 故事已儲存至: {filename}")
+    # 1. 載入模板
+    print("⏳ 載入 prompt_to_follow.md 模板...")
+    template = load_template_file()
+    print(f"   ✓ 已載入模板 ({len(template)} 字)\n")
+    
+    # 2. 獲取所有故事類型
+    story_types = get_all_story_types()
+    print(f"📚 找到 {len(story_types)} 種故事類型:")
+    for st in story_types:
+        print(f"   - {st}")
+    
+    # 3. 為每個故事類型生成所有組合
+    total_success = 0
+    total_fail = 0
+    output_dirs = []
+    
+    for story_type in story_types:
+        success, fail, output_dir = generate_stories_for_type(story_type, template)
+        total_success += success
+        total_fail += fail
+        output_dirs.append(output_dir)
+    
+    # 4. 顯示最終總結
+    print(f"\n{'='*80}")
+    print("🎉 所有故事生成完成!")
+    print(f"{'='*80}")
+    print(f"   ✓ 總成功: {total_success} 個")
+    if total_fail > 0:
+        print(f"   ❌ 總失敗: {total_fail} 個")
+    print(f"\n   📁 輸出目錄:")
+    for output_dir in output_dirs:
+        print(f"      - {output_dir}")
+    print(f"{'='*80}\n")
 
 
 if __name__ == "__main__":
@@ -371,14 +590,5 @@ if __name__ == "__main__":
         print("❌ 錯誤: 請先在腳本中設定 GEMINI_API_KEY")
         sys.exit(1)
     
-    if len(sys.argv) < 2:
-        print("用法: python short_story_generator.py <故事類型>")
-        print("\n可用的故事類型:")
-        print("   - adventure comdey")
-        print("   - Sharing")
-        print("   - Bed Time")
-        print("   - Nature")
-        sys.exit(1)
-    
-    story_type = sys.argv[1]
-    main(story_type)
+    # 自動生成所有故事類型的所有組合，不需要參數
+    main()

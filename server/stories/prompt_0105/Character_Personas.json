@@ -1,93 +1,58 @@
 [
   {
-    "character": "Angel",
-    "name": "亮亮",
-    "persona1": "恐高症的守護者",
-    "persona2": "完美主義的搗蛋鬼"
-  },
-  {
-    "character": "Cat",
-    "name": "毛毛",
-    "persona1": "親人的獨行俠",
-    "persona2": "愛水的貓"
-  },
-  {
-    "character": "Dog",
-    "name": "豆豆",
-    "persona1": "害怕小東西的勇士",
-    "persona2": "喜歡收集襪子的發明家"
+    "character": "Dragon",
+    "character_id": "C01",
+    "persona_id": "T01",
+    "name": "呼呼",
+    "persona": "有鱗的愛哭鬼"
   },
   {
     "character": "Dragon",
+    "character_id": "C01",
+    "persona_id": "T02",
     "name": "呼呼",
-    "persona1": "有鱗的愛哭鬼",
-    "persona2": "怕高的飛行員"
-  },
-  {
-    "character": "Elf",
-    "name": "奇奇",
-    "persona1": "懶惰的自然守護者",
-    "persona2": "沒有方向感的嚮導"
-  },
-  {
-    "character": "Fairy",
-    "name": "晶晶",
-    "persona1": "冒失大力士",
-    "persona2": "沒自信的治癒者"
+    "persona": "怕高的飛行員"
   },
   {
     "character": "Knight",
+    "character_id": "C02",
+    "persona_id": "T01",
     "name": "鏘鏘",
-    "persona1": "害怕黑暗的守護者",
-    "persona2": "沉穩的冒失鬼"
+    "persona": "害怕黑暗的守護者"
   },
   {
-    "character": "Lion",
-    "name": "吼吼",
-    "persona1": "沒自信的領導者",
-    "persona2": "愛哭的大隻佬"
-  },
-  {
-    "character": "Mouse",
-    "name": "吱吱",
-    "persona1": "膽小的冒險家",
-    "persona2": "強壯的膽小鬼"
-  },
-  {
-    "character": "Prince",
-    "name": "小寶",
-    "persona1": "熱愛烹飪的王子",
-    "persona2": "害怕馬的王子"
+    "character": "Knight",
+    "character_id": "C02",
+    "persona_id": "T02",
+    "name": "鏘鏘",
+    "persona": "沉穩的冒失鬼"
   },
   {
     "character": "Princess",
+    "character_id": "C03",
+    "persona_id": "T01",
     "name": "樂樂",
-    "persona1": "討厭裙子的公主",
-    "persona2": "夢想成為發明家的公主"
+    "persona": "討厭裙子的公主"
   },
   {
-    "character": "Robot",
-    "name": "嗶啵",
-    "persona1": "渴望感受情感的邏輯機器人",
-    "persona2": "愛模仿的「傻瓜」機器人"
-  },
-  {
-    "character": "Unicorn",
-    "name": "朵朵",
-    "persona1": "愛吃甜甜圈的獨角獸",
-    "persona2": "不會飛的獨角獸"
-  },
-  {
-    "character": "Witch",
-    "name": "莎莎",
-    "persona1": "喜歡收集閃亮東西的善良女巫",
-    "persona2": "討厭飛行的女巫"
+    "character": "Princess",
+    "character_id": "C03",
+    "persona_id": "T02",
+    "name": "樂樂",
+    "persona": "夢想成為發明家的公主"
   },
   {
     "character": "Wizard",
+    "character_id": "C04",
+    "persona_id": "T01",
     "name": "圖靈",
-    "persona1": "記憶力很差的偉大巫師",
-    "persona2": "喜歡用科學做實驗的巫師"
+    "persona": "記憶力很差的偉大巫師"
+  },
+  {
+    "character": "Wizard",
+    "character_id": "C04",
+    "persona_id": "T02",
+    "name": "圖靈",
+    "persona": "喜歡用科學做實驗的巫師"
   }
 ]
-
