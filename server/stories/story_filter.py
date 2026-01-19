@@ -35,9 +35,10 @@ def extract_story_content(content):
             return ""
         story_content = parts[1].strip()
     
-    # Remove word count comments like "(200字)", "(約200字)", "(约200字)", etc.
-    # Pattern matches: (optional 約/约) + digits + 字
-    word_count_pattern = r'\([約约]?\d+字\)'
+    # Remove word count comments like "(200字)", "（約200字）", "(约200字)", etc.
+    # Pattern matches: halfwidth or fullwidth brackets + optional 約/约 + digits + 字 + matching bracket
+    # Supports both: () and （）
+    word_count_pattern = r'[（(][約约]?\d+字[)）]'
     story_content = re.sub(word_count_pattern, '', story_content)
     
     return story_content.strip()
@@ -177,8 +178,8 @@ def process_file(file_path):
     char_count = count_chinese_characters(cleaned_content)
     
     # Check word count range (900-1400)
-    if char_count < 900 or char_count > 1400:
-        return (False, None, f"Word count out of range: {char_count} (required: 900-1400)")
+    if char_count < 600 or char_count > 900:
+        return (False, None, f"Word count out of range: {char_count} ")
     
     # Check for non-Chinese characters
     if has_non_chinese_characters(cleaned_content):
