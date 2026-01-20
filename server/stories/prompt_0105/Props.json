@@ -1,12 +1,12 @@
 [
   {
-    "prop_name": "貪吃的羅盤\n(The Indecisive Compass)",
+    "prop_name": "貪吃的羅盤",
     "prop_id": "K01",
     "prop_logic": "[Rule: Desire Oriented] 這是一個「貪吃」的羅盤。它永遠不指北方，只指著附近最好吃的食物。如果附近沒食物，指針就會垂下來裝死。",
     "comedy_scenario": "主角問：「巨龍在哪裡？」羅盤卻堅定地指向主角的背包（因為裡面有一顆被遺忘的糖果）。"
   },
   {
-    "prop_name": "誠實羽毛筆\n(The Honest Quill)",
+    "prop_name": "誠實羽毛筆",
     "prop_id": "K02",
     "prop_logic": "[Rule: Brutal Honesty] 這是一支「忍不住說實話」的筆。它只有一個功能：把角色心裡尷尬的實話寫在空中。它不能當作膠水、繩子或武器，它只能寫字。",
     "comedy_scenario": "騎士想寫信恐嚇怪獸，筆卻在空中寫出：「我好害怕，我想找媽媽。」"

@@ -25,10 +25,47 @@ def load_json(filename):
         return json.load(f)
 
 def load_template_file():
-    """載入 prompt_to_follow.md 模板"""
     template_path = os.path.join(DATA_FOLDER, "prompt_to_follow.md")
     with open(template_path, 'r', encoding='utf-8') as f:
         return f.read()
+
+def get_all_story_types():
+    templates = load_json("短篇故事模板.json")
+    story_types = set()
+    
+    for row in templates:
+        story_type = row.get('story_type', '').strip()
+        if story_type:
+            story_types.add(story_type)
+    
+    return sorted(list(story_types))
+
+def get_all_character_combinations():
+    """自動生成所有可能的角色組合
+    
+    從所有角色中選擇 2 個，每個角色有 2 個特質選擇
+    例如：C01-C02, C01-C03, C01-C04, C02-C03, C02-C04, C03-C04
+    
+    Returns:
+        list: 所有角色組合的列表，每個元素為 (char_a_id, char_a_trait, char_b_id, char_b_trait)
+    """
+    characters = load_json("Character_Personas.json")
+    
+    # 獲取所有唯一的角色 ID
+    character_ids = sorted(set(char.get('character_id') for char in characters))
+    traits = ["T01", "T02"]  # 每個角色有兩個特質
+    
+    combinations = []
+    
+    # 生成所有角色對（不重複，順序不重要，但保持一致的順序）
+    for i, char_a_id in enumerate(character_ids):
+        for char_b_id in character_ids[i+1:]:  # 只與後面的角色配對，避免重複
+            # 為每對角色生成所有特質組合
+            for char_a_trait in traits:
+                for char_b_trait in traits:
+                    combinations.append((char_a_id, char_a_trait, char_b_id, char_b_trait))
+    
+    return combinations
 
 def get_phase_instruction(story_type, phase_name):
     """從短篇故事模板.json 提取特定 Phase 的指令
@@ -45,28 +82,47 @@ def get_phase_instruction(story_type, phase_name):
         phase_match = phase_name_value.startswith(phase_name.strip())
         
         if story_type_match and phase_match:
-            # prompt_instruction 是一個數組，需要合併成字串
+            # prompt_instruction 可能是字串或 list
             instructions = row.get('prompt_instruction', [])
             if isinstance(instructions, list):
                 return '\n'.join(instructions)
             return str(instructions) if instructions else ''
     return ''
 
-def get_all_story_types():
-    """獲取所有可用的故事類型
+def get_logic_setup_instruction(story_type):
+    """取得指定 story_type 的 Logic Setup 指令（對應 prompt_to_follow.md 的 {{Logic_setup}}）
     
-    Returns:
-        list: 所有故事類型的列表
+    規則：
+    1) 優先找 phase_name 含有 'logic'（不分大小寫）的列
+    2) 若找不到，針對 Nature 類型（或未命名 logic phase）再找 phase_id 含 'setting' 的列
+    3) 都找不到則回傳空字串
     """
     templates = load_json("短篇故事模板.json")
-    story_types = set()
+    st = story_type.strip()
     
+    # 1) phase_name contains "logic"
     for row in templates:
-        story_type = row.get('story_type', '').strip()
-        if story_type:
-            story_types.add(story_type)
+        if row.get('story_type', '').strip() != st:
+            continue
+        phase_name_value = (row.get('phase_name') or '').strip()
+        if 'logic' in phase_name_value.lower():
+            instructions = row.get('prompt_instruction', '')
+            if isinstance(instructions, list):
+                return '\n'.join(instructions)
+            return str(instructions).strip()
     
-    return sorted(list(story_types))
+    # 2) fallback: phase_id contains "setting" (e.g. Nat_setting)
+    for row in templates:
+        if row.get('story_type', '').strip() != st:
+            continue
+        phase_id_value = (row.get('phase_id') or '').strip()
+        if 'setting' in phase_id_value.lower():
+            instructions = row.get('prompt_instruction', '')
+            if isinstance(instructions, list):
+                return '\n'.join(instructions)
+            return str(instructions).strip()
+    
+    return ''
 
 def get_total_word_limit(story_type):
     """計算指定故事類型所有 Phase 的總字數限制（中文字）
@@ -196,7 +252,6 @@ def get_elements_by_id(char_a_id, char_a_trait, char_b_id, char_b_trait, world_i
         'prop_id': prop_id,
     }
 
-
 def get_phase_summary(phase_instruction):
     """從 Phase 指令中提取簡要描述，用於 Writing Task 部分"""
     if not phase_instruction:
@@ -243,7 +298,6 @@ def get_phase_summary(phase_instruction):
     
     return '，'.join(summary_parts[:2]) if summary_parts else "按照階段指令完成"
 
-
 def fill_template(template, story_type, elements):
     """填充模板變數"""
     # 載入 META prompt
@@ -255,6 +309,7 @@ def fill_template(template, story_type, elements):
     theme = story_type
     
     # 獲取各階段指令
+    logic_setup = get_logic_setup_instruction(story_type)
     task_phase_1 = get_phase_instruction(story_type, 'Setup')
     task_phase_2 = get_phase_instruction(story_type, 'Twist')
     task_phase_3 = get_phase_instruction(story_type, 'Climax')
@@ -265,6 +320,14 @@ def fill_template(template, story_type, elements):
     prop_name = prop_info.split('(邏輯：')[0].strip() if '(邏輯：' in prop_info else prop_info.split('(')[0].strip()
     
     # 替換所有變數
+    # 注意：repo 內同時存在兩種 placeholder 風格
+    # - prompt_to_follow.md 使用 {{LikeThis}}
+    # - 短篇故事模板.json 的 phase 指令大量使用 {LikeThis}
+    # 由於 phase 指令會被塞進 {{Task_Phase_*}} 後才進入最終 prompt，
+    # 若不額外處理，{Location} 這類 token 會保留在 filled_template 中。
+
+    # Add a function to get word_limit of each phase for story_type
+    get_phase_word_limit = lambda st, pname: next((str(row.get('word_limit', '')) for row in load_json("短篇故事模板.json") if row.get('story_type', '').strip() == st.strip() and row.get('phase_name', '').strip().startswith(pname)), '')
     replacements = {
         '{{META prompt.csv / Prompt_Instruction}}': meta_prompt,
         '{{Theme}}': theme,
@@ -274,18 +337,29 @@ def fill_template(template, story_type, elements):
         '{{Character_B}}': elements['Sidekick_Info'],
         '{{Prop}}': prop_name,
         '{{Comedy}}': elements['Comedy'],
-        '{{Task_Phase_1}}': task_phase_1,
-        '{{Task_Phase_2}}': task_phase_2,
-        '{{Task_Phase_3}}': task_phase_3,
-        '{{Task_Phase_4}}': task_phase_4,
+        '{{Logic_setup}}': logic_setup,
+        '{{Task_Phase_1}}': f"{task_phase_1}\n(字數上限：{get_phase_word_limit(story_type, 'Setup')})",
+        '{{Task_Phase_2}}': f"{task_phase_2}\n(字數上限：{get_phase_word_limit(story_type, 'Twist')})",
+        '{{Task_Phase_3}}': f"{task_phase_3}\n(字數上限：{get_phase_word_limit(story_type, 'Climax')})",
+        '{{Task_Phase_4}}': f"{task_phase_4}\n(字數上限：{get_phase_word_limit(story_type, 'Ending')})",
     }
+
+    # 同步替換單大括號版本（來自短篇故事模板.json）
+    replacements.update({
+        '{Theme}': theme,
+        '{Location}': elements['Location'],
+        '{Sensory_Detail}': elements['Sensory_Detail'],
+        '{Character_A}': elements['Hero_Info'],
+        '{Character_B}': elements['Sidekick_Info'],
+        '{Prop}': prop_name,
+        '{Comedy}': elements['Comedy'],
+    })
     
     filled_template = template
     for key, value in replacements.items():
         filled_template = filled_template.replace(key, value)
     
     return filled_template
-
 
 def format_output_file(story_type, elements, story, theme):
     """格式化輸出文件，與 prompt_to_follow_example.txt 格式一致"""
@@ -353,12 +427,12 @@ def generate_with_gemini(user_prompt, max_words=0):
     if max_words > 0:
         word_limit_note = f"\n\n[重要] 請確保完整故事的總字數約為 {max_words} 字（中文字）。請嚴格控制字數，不要超過此限制。"
         final_prompt = final_prompt + word_limit_note
-    
+ 
     response = model.generate_content(
         final_prompt,
         generation_config=genai.types.GenerationConfig(temperature=0.7)
-    )
-    
+    ) 
+
     return response.candidates[0].content.parts[0].text.strip()
 
 def generate_single_story(story_type, char_a_id, char_a_trait, char_b_id, char_b_trait, 
@@ -385,7 +459,7 @@ def generate_single_story(story_type, char_a_id, char_a_trait, char_b_id, char_b
     
     # 2. 填充模板
     filled_prompt = fill_template(template, story_type, elements)
-    
+ 
     # 3. 獲取字數限制
     total_word_limit = get_total_word_limit(story_type)
     
@@ -435,43 +509,7 @@ def generate_single_story(story_type, char_a_id, char_a_trait, char_b_id, char_b
     
     return True
 
-def get_all_character_combinations():
-    """自動生成所有可能的角色組合
-    
-    從所有角色中選擇 2 個，每個角色有 2 個特質選擇
-    例如：C01-C02, C01-C03, C01-C04, C02-C03, C02-C04, C03-C04
-    
-    Returns:
-        list: 所有角色組合的列表，每個元素為 (char_a_id, char_a_trait, char_b_id, char_b_trait)
-    """
-    characters = load_json("Character_Personas.json")
-    
-    # 獲取所有唯一的角色 ID
-    character_ids = sorted(set(char.get('character_id') for char in characters))
-    traits = ["T01", "T02"]  # 每個角色有兩個特質
-    
-    combinations = []
-    
-    # 生成所有角色對（不重複，順序不重要，但保持一致的順序）
-    for i, char_a_id in enumerate(character_ids):
-        for char_b_id in character_ids[i+1:]:  # 只與後面的角色配對，避免重複
-            # 為每對角色生成所有特質組合
-            for char_a_trait in traits:
-                for char_b_trait in traits:
-                    combinations.append((char_a_id, char_a_trait, char_b_id, char_b_trait))
-    
-    return combinations
-
 def generate_stories_for_type(story_type, template):
-    """為指定故事類型生成所有組合的故事
-    
-    Args:
-        story_type: 故事類型
-        template: 已載入的模板
-    
-    Returns:
-        tuple: (成功數量, 失敗數量, 輸出目錄)
-    """
     print(f"\n{'='*80}")
     print(f"📖 生成故事類型: {story_type}")
     print(f"{'='*80}\n")
@@ -545,23 +583,12 @@ def generate_stories_for_type(story_type, template):
     return success_count, fail_count, output_dir
 
 def main():
-    """主程式 - 自動生成所有故事類型的所有組合"""
-    print(f"\n{'='*80}")
-    print("🚀 短篇故事生成器 - 自動生成所有組合")
-    print(f"{'='*80}\n")
-    
-    # 1. 載入模板
-    print("⏳ 載入 prompt_to_follow.md 模板...")
-    template = load_template_file()
-    print(f"   ✓ 已載入模板 ({len(template)} 字)\n")
-    
-    # 2. 獲取所有故事類型
-    story_types = get_all_story_types()
-    print(f"📚 找到 {len(story_types)} 種故事類型:")
-    for st in story_types:
-        print(f"   - {st}")
-    
-    # 3. 為每個故事類型生成所有組合
+
+    template = load_template_file() 
+    # story_types = get_all_story_types()
+    story_types = ["adventure comedy"]
+    print("the story_types are: ", story_types)
+
     total_success = 0
     total_fail = 0
     output_dirs = []
@@ -586,9 +613,4 @@ def main():
 
 
 if __name__ == "__main__":
-    if not GEMINI_API_KEY:
-        print("❌ 錯誤: 請先在腳本中設定 GEMINI_API_KEY")
-        sys.exit(1)
-    
-    # 自動生成所有故事類型的所有組合，不需要參數
     main()
