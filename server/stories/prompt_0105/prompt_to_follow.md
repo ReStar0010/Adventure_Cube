@@ -20,6 +20,12 @@
 
 ---
 
+## Logic Block
+【Logic block : 設定故事的邏輯】
+`{{Logic_setup}}`
+
+---
+
 ## Writing Task: Full Story Arc
 
 請依照以下四個階段的架構，從頭到尾連續寫出完整故事。故事內容請不要分段落標題或階段名稱，讓故事自然流暢衔接。
