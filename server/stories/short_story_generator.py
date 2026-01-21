@@ -362,41 +362,37 @@ def fill_template(template, story_type, elements):
     return filled_template
 
 def format_output_file(story_type, elements, story, theme):
-    """格式化輸出文件，與 prompt_to_follow_example.txt 格式一致"""
-    # 提取道具名稱和邏輯
-    prop_info = elements['Prop_Info']
-    prop_name = prop_info.split('(')[0].strip()
-    prop_logic = prop_info.split('邏輯：')[-1].strip() if '邏輯：' in prop_info else ''
+    """格式化輸出文件，只輸出故事內容本身"""
+    # 移除 [Story Setup] 部分和所有以 > 開頭的元數據行
+    lines = story.split('\n')
+    result_lines = []
+    skip_mode = False
     
-    # 提取喜劇手法
-    comedy_info = elements['Comedy']
-    comedy_name = comedy_info.split('(')[0].strip() if '(' in comedy_info else comedy_info
+    for line in lines:
+        # 檢測 [Story Setup] 標記（可能有多種格式）
+        if '[Story Setup]' in line:
+            skip_mode = True
+            continue
+        
+        # 如果處於跳過模式，跳過所有以 > 開頭的行和空行
+        if skip_mode:
+            # 跳過以 > 開頭的行（包括 "Selected Scene", "Selected NPC", "NPC's Goal" 等）
+            if line.strip().startswith('>'):
+                continue
+            # 跳過空行
+            if not line.strip():
+                continue
+            # 遇到第一個非 > 開頭的非空行，結束跳過模式並開始收集內容
+            skip_mode = False
+            result_lines.append(line)
+        else:
+            # 如果不在跳過模式，但遇到以 > 開頭的行，也跳過（以防萬一）
+            if line.strip().startswith('>'):
+                continue
+            result_lines.append(line)
     
-    # 構建 [Current Story Context] 部分
-    context_section = f"""[Current Story Context]
-核心概念：{theme}
-地點：{elements['Location']} (環境特徵：{elements['Sensory_Detail']})
-角色：
-主角 A：{elements['Hero_Info']}
-夥伴 B：{elements['Sidekick_Info']}
-關鍵道具：{prop_name} (邏輯：{prop_logic})
-指定喜劇手法：{comedy_name}"""
-    
-    # 構建 [Writing Task] 部分
-    phase_1_summary = get_phase_summary(get_phase_instruction(story_type, 'Setup'))
-    phase_2_summary = get_phase_summary(get_phase_instruction(story_type, 'Twist'))
-    phase_3_summary = get_phase_summary(get_phase_instruction(story_type, 'Climax'))
-    phase_4_summary = get_phase_summary(get_phase_instruction(story_type, 'Ending'))
-    
-    writing_task = f"""[Writing Task: Full Story Arc] 【Phase 1】 {phase_1_summary}。 【Phase 2】 {phase_2_summary}。 【Phase 3】 {phase_3_summary}。 【Phase 4】 {phase_4_summary}。"""
-    
-    # 組合完整輸出
-    full_output = f"""{context_section}
-{writing_task}
-Output Story (AI 生成結果)
-{story}"""
-    
-    return full_output
+    # 返回清理後的故事內容
+    return '\n'.join(result_lines).strip()
 
 
 def generate_with_gemini(user_prompt, max_words=0):
@@ -509,6 +505,108 @@ def generate_single_story(story_type, char_a_id, char_a_trait, char_b_id, char_b
     
     return True
 
+def regenerate_stories(story_params_list):
+    """
+    重新生成指定的故事列表
+    
+    Args:
+        story_params_list: 故事參數列表，每個元素是一個字典，包含：
+            {
+                'story_type': str,
+                'char_a_id': str,
+                'char_a_trait': str,
+                'char_b_id': str,
+                'char_b_trait': str,
+                'world_id': str,
+                'location_id': str,
+                'prop_id': str
+            }
+    """
+    if not story_params_list:
+        print("沒有需要重新生成的故事。")
+        return
+    
+    print(f"\n{'='*80}")
+    print(f"🔄 重新生成 {len(story_params_list)} 個故事")
+    print(f"{'='*80}\n")
+    
+    # 載入模板
+    template = load_template_file()
+    
+    # 確保輸出目錄相對於腳本目錄
+    base_dir = SCRIPT_DIR
+    
+    # 按故事類型分組
+    stories_by_type = {}
+    for params in story_params_list:
+        story_type = params['story_type']
+        if story_type not in stories_by_type:
+            stories_by_type[story_type] = []
+        stories_by_type[story_type].append(params)
+    
+    total_success = 0
+    total_fail = 0
+    
+    # 為每個故事類型生成對應的輸出目錄
+    for story_type, params_list in stories_by_type.items():
+        print(f"\n{'='*80}")
+        print(f"📖 重新生成故事類型: {story_type} ({len(params_list)} 個)")
+        print(f"{'='*80}\n")
+        
+        # 獲取字數限制（中文字）
+        total_word_limit = get_total_word_limit(story_type)
+        if total_word_limit > 0:
+            print(f"   📏 每個故事目標字數: {total_word_limit} 字")
+        
+        # 創建輸出目錄（相對於腳本目錄）
+        output_dir = os.path.join(base_dir, f"stories_{story_type.replace(' ', '_')}")
+        print(f"💾 輸出目錄: {output_dir}")
+        
+        print(f"\n開始生成故事...\n")
+        
+        success_count = 0
+        fail_count = 0
+        
+        for idx, params in enumerate(params_list, 1):
+            char_combo = f"{params['char_a_id']}{params['char_a_trait']}_{params['char_b_id']}{params['char_b_trait']}"
+            location_combo = f"{params['world_id']}{params['location_id']}"
+            print(f"[{idx}/{len(params_list)}] 生成: {char_combo} + {location_combo} + {params['prop_id']}...")
+            
+            success = generate_single_story(
+                params['story_type'],
+                params['char_a_id'],
+                params['char_a_trait'],
+                params['char_b_id'],
+                params['char_b_trait'],
+                params['world_id'],
+                params['location_id'],
+                params['prop_id'],
+                template,
+                output_dir
+            )
+            
+            if success:
+                success_count += 1
+                total_success += 1
+            else:
+                fail_count += 1
+                total_fail += 1
+        
+        print(f"\n✨ {story_type} 完成!")
+        print(f"   ✓ 成功: {success_count} 個")
+        if fail_count > 0:
+            print(f"   ❌ 失敗: {fail_count} 個")
+    
+    # 顯示總體總結
+    print(f"\n{'='*80}")
+    print(f"🎉 重新生成完成!")
+    print(f"{'='*80}")
+    print(f"   ✓ 總成功: {total_success} 個")
+    if total_fail > 0:
+        print(f"   ❌ 總失敗: {total_fail} 個")
+    print(f"{'='*80}\n")
+
+
 def generate_stories_for_type(story_type, template):
     print(f"\n{'='*80}")
     print(f"📖 生成故事類型: {story_type}")
@@ -585,9 +683,7 @@ def generate_stories_for_type(story_type, template):
 def main():
 
     template = load_template_file() 
-    # story_types = get_all_story_types()
-    story_types = ["adventure comedy"]
-    print("the story_types are: ", story_types)
+    story_types = get_all_story_types()
 
     total_success = 0
     total_fail = 0
