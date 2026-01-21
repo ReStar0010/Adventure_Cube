@@ -79,6 +79,7 @@ REPLACEMENT_MAP = {
     '立馬': '立刻',
     '計程車': '小黃',
     '質量': '品質',
+    '多米諾': '骨牌',
 
     # 幽默/情緒/形容詞
     '奇思妙想': '天馬行空',
@@ -995,11 +996,16 @@ def process_story_files(directory: str):
 if __name__ == "__main__":
     # 獲取腳本所在目錄
     script_dir = Path(__file__).parent
-    stories_dir = script_dir / "generated_stories"
+    stories_dir_ADV = script_dir / "stories_adventure_comedy"
+    stories_dir_NAT = script_dir / "stories_Nature"
+    stories_dir_SHR = script_dir / "stories_Sharing"
     
     print("開始處理故事文件...")
-    print(f"目標目錄: {stories_dir}")
+    print(f"目標目錄: {stories_dir_ADV}")
+    print(f"目標目錄: {stories_dir_NAT}")
+    print(f"目標目錄: {stories_dir_SHR}")
     print()
     
-    process_story_files(str(stories_dir))
-
+    process_story_files(str(stories_dir_ADV))
+    process_story_files(str(stories_dir_NAT))
+    process_story_files(str(stories_dir_SHR))

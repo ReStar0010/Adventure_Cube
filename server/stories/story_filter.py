@@ -8,12 +8,21 @@ Filters and cleans story files in the specified directories.
 import os
 import re
 from pathlib import Path
+import sys
 
 
 def extract_story_content(content):
     """
-    Extract content after 'Output Story (AI 生成結果)' and remove word count comments.
-    If marker is not found, assume the file is already cleaned and just remove word counts.
+    抽取「故事正文」並清理字數註記。
+    
+    為了相容不同生成版本，正文起點不只可能是：
+    - Output Story (AI 生成結果)
+    - Output Story ...
+    
+    也可能在 Output Story 之後仍包含一段 setup/logic 區塊（如 [Story Setup]、
+    [Story Logic Setup]、條列 * / 引用 >），需要濾掉後才是正文。
+    
+    若找不到任何 marker，則視為內容可能已經是正文，僅做基本清理。
     
     Args:
         content: Original file content
@@ -21,19 +30,68 @@ def extract_story_content(content):
     Returns:
         Cleaned story content
     """
-    # Find the line with "Output Story (AI 生成結果)"
-    marker = "Output Story (AI 生成結果)"
+    if not content:
+        return ""
     
-    if marker not in content:
-        # If marker not found, assume file is already cleaned
-        # Just remove word count comments
-        story_content = content
-    else:
-        # Split by marker and take everything after it
-        parts = content.split(marker, 1)
-        if len(parts) < 2:
-            return ""
-        story_content = parts[1].strip()
+    # Normalize newlines for consistent regex behavior
+    text = content.replace("\r\n", "\n").replace("\r", "\n")
+    
+    def _slice_after_first_marker(src: str) -> str:
+        """
+        Prefer slicing after an 'Output Story...' line if present.
+        Fallback: slice after a '[Story Start]' line if present.
+        """
+        # 1) Output Story... (allow variants like "Output Story", "Output Story (AI 生成結果)")
+        m = re.search(r'(?mi)^\s*Output Story\b.*$', src)
+        if m:
+            return src[m.end():].lstrip("\n")
+        
+        # 2) Some formats explicitly include a [Story Start] section header
+        m = re.search(r'(?mi)^\s*\[Story Start\]\s*$', src)
+        if m:
+            return src[m.end():].lstrip("\n")
+        
+        return src
+    
+    story_content = _slice_after_first_marker(text).strip()
+    if not story_content:
+        return ""
+    
+    def _is_metadata_line(line: str) -> bool:
+        s = (line or "").strip()
+        if not s:
+            return True
+        
+        # Markdown-ish setup headers frequently used before the actual narrative
+        # Examples:
+        # **[Story Logic Setup]**
+        # [Story Setup]
+        # [Story Start]
+        if re.match(r'^\*{0,2}\[[^\]]+\]\*{0,2}$', s):
+            return True
+        
+        # Blockquote/list/bullets that usually describe logic/setup, not narrative
+        # Examples:
+        # * **Co-op Mode**: ...
+        # > * **Prop Backfire**: ...
+        if s.startswith(">"):
+            return True
+        if re.match(r'^[-*]\s+', s):
+            return True
+        
+        # Common setup headings (even without brackets)
+        lower = s.lower()
+        if "story logic setup" in lower or "story setup" in lower:
+            return True
+        
+        return False
+    
+    # Drop leading metadata/setup lines until we hit the first narrative line.
+    lines = story_content.split("\n")
+    i = 0
+    while i < len(lines) and _is_metadata_line(lines[i]):
+        i += 1
+    story_content = "\n".join(lines[i:]).strip()
     
     # Remove word count comments like "(200字)", "（約200字）", "(约200字)", etc.
     # Pattern matches: halfwidth or fullwidth brackets + optional 約/约 + digits + 字 + matching bracket
@@ -152,6 +210,95 @@ def has_non_chinese_characters(text):
     return False
 
 
+def parse_filename(filename, directory_name):
+    """
+    從文件名解析故事參數
+    
+    文件名格式: {theme_code}_{char_combo}_{location_combo}_{prop_id}_TW_V1.txt
+    例如: ADV_C01T02_C04T01_W02A02_K02_TW_V1.txt
+    
+    Args:
+        filename: 文件名（不含路徑）
+        directory_name: 目錄名稱（用於推斷故事類型）
+    
+    Returns:
+        dict: 包含故事參數的字典，如果解析失敗則返回 None
+        {
+            'story_type': str,
+            'char_a_id': str,
+            'char_a_trait': str,
+            'char_b_id': str,
+            'char_b_trait': str,
+            'world_id': str,
+            'location_id': str,
+            'prop_id': str
+        }
+    """
+    # 移除 .txt 擴展名
+    name_without_ext = filename.replace('.txt', '')
+    
+    # 解析文件名各部分
+    # 格式: {theme_code}_{char_a_id}{char_a_trait}_{char_b_id}{char_b_trait}_{location_combo}_{prop_id}_TW_V1
+    # 例如: SOC_C03T01_C04T02_W02A02_K01_TW_V1
+    parts = name_without_ext.split('_')
+    
+    if len(parts) < 5:
+        return None
+    
+    theme_code = parts[0]  # 例如: SOC, ADV, NAT
+    char_a_str = parts[1]  # 例如: C03T01
+    char_b_str = parts[2]  # 例如: C04T02
+    location_combo = parts[3]  # 例如: W02A02
+    prop_id = parts[4]  # 例如: K01
+    
+    # 解析第一個角色: C03T01 -> C03, T01
+    char_a_match = re.match(r'^([A-Z]\d+)([A-Z]\d+)$', char_a_str)
+    if not char_a_match:
+        return None
+    char_a_id = char_a_match.group(1)
+    char_a_trait = char_a_match.group(2)
+    
+    # 解析第二個角色: C04T02 -> C04, T02
+    char_b_match = re.match(r'^([A-Z]\d+)([A-Z]\d+)$', char_b_str)
+    if not char_b_match:
+        return None
+    char_b_id = char_b_match.group(1)
+    char_b_trait = char_b_match.group(2)
+    
+    # 解析地點組合: W02A02 -> W02, A02
+    location_match = re.match(r'^([A-Z]\d+)([A-Z]\d+)$', location_combo)
+    if not location_match:
+        return None
+    world_id = location_match.group(1)
+    location_id = location_match.group(2)
+    
+    # 從目錄名稱推斷故事類型
+    # 目錄名稱格式: stories_Nature, stories_adventure_comedy, stories_Sharing
+    # 實際故事類型: "Nature", "adventure comedy", "Sharing"
+    story_type = None
+    dir_lower = directory_name.lower()
+    if 'nature' in dir_lower:
+        story_type = 'Nature'
+    elif 'adventure' in dir_lower or 'comedy' in dir_lower:
+        story_type = 'adventure comedy'  # 注意：實際 JSON 中使用小寫
+    elif 'sharing' in dir_lower:
+        story_type = 'Sharing'
+    
+    if not story_type:
+        return None
+    
+    return {
+        'story_type': story_type,
+        'char_a_id': char_a_id,
+        'char_a_trait': char_a_trait,
+        'char_b_id': char_b_id,
+        'char_b_trait': char_b_trait,
+        'world_id': world_id,
+        'location_id': location_id,
+        'prop_id': prop_id
+    }
+
+
 def process_file(file_path):
     """
     Process a single story file: clean it and check if it meets criteria.
@@ -178,7 +325,7 @@ def process_file(file_path):
     char_count = count_chinese_characters(cleaned_content)
     
     # Check word count range (900-1400)
-    if char_count < 600 or char_count > 900:
+    if char_count < 800 or char_count > 1200:
         return (False, None, f"Word count out of range: {char_count} ")
     
     # Check for non-Chinese characters
@@ -211,6 +358,7 @@ def main():
     
     files_to_delete = []
     files_to_update = []
+    stories_to_regenerate = []  # 需要重新生成的故事參數列表
     
     print("Starting story file filtering...")
     print("=" * 60)
@@ -239,9 +387,16 @@ def main():
                     if current_content != cleaned_content:
                         files_to_update.append((file_path, cleaned_content))
                 else:
-                    # Mark for deletion
+                    # Mark for deletion and parse story parameters for regeneration
                     files_to_delete.append((file_path, reason))
                     print(f"  ❌ {file_path.name}: {reason}")
+                    
+                    # 解析文件名以獲取故事參數
+                    story_params = parse_filename(file_path.name, target_dir.name)
+                    if story_params:
+                        stories_to_regenerate.append(story_params)
+                    else:
+                        print(f"  ⚠️  無法解析文件名參數: {file_path.name}")
                     
             except Exception as e:
                 print(f"  ✗ Error processing {file_path.name}: {e}")
@@ -255,6 +410,7 @@ def main():
     print(f"  To keep: {stats['kept']} files")
     print(f"  To delete: {stats['deleted']} files")
     print(f"  To update: {len(files_to_update)} files")
+    print(f"  To regenerate: {len(stories_to_regenerate)} stories")
     
     if files_to_delete or files_to_update:
         response = input("\nProceed with updates and deletions? (yes/no): ")
@@ -284,6 +440,27 @@ def main():
                 except Exception as e:
                     print(f"  ✗ Error deleting {file_path.name}: {e}")
                     stats['errors'] += 1
+        
+        # Regenerate stories that were filtered out
+        if stories_to_regenerate:
+            print("\n" + "=" * 60)
+            print(f"\n準備重新生成 {len(stories_to_regenerate)} 個被過濾掉的故事...")
+            response = input("是否繼續重新生成？(yes/no): ")
+            if response.lower() in ['yes', 'y']:
+                try:
+                    # 導入生成器模組
+                    sys.path.insert(0, str(base_dir))
+                    from short_story_generator import regenerate_stories
+                    
+                    # 調用生成器重新生成故事
+                    regenerate_stories(stories_to_regenerate)
+                except Exception as e:
+                    print(f"  ✗ 重新生成故事時發生錯誤: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    stats['errors'] += 1
+            else:
+                print("跳過重新生成步驟。")
         
         print("\n" + "=" * 60)
         print(f"Operation completed!")
