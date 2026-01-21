@@ -3,7 +3,7 @@
     "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_00",
     "phase_name": "Logic_Setup",
-    "prompt_instruction": "[Format: Logic Block Only]\n\n**絕對禁止**在此階段撰寫任何故事內容。你必須嚴格執行以下「亂數骰子」步驟來決定變數，以確保故事的多樣性。\n\n**第一步：執行亂數生成 (RNG)**\n請在腦中為每個類別擲一個骰子，並輸出結果：\n> **[Dice Roll]**\n> * **Quest_Roll**: (1-3)\n> * **Misuse_Roll**: (1-2)\n> * **Climax_Roll**: (1-3)\n> * **Resolution_Roll**: (1-3)\n\n**第二步：根據亂數查表 (Lookup Table)**\n\n**1. 抽選任務 (Quest Mode) - 對應 Quest_Roll:**\n   * **[1] -> [尋寶任務]**：目標是找回遺失物（如：國王的假牙、月球鑰匙）。\n   * **[2] -> [發明任務]**：目標是組裝或修理機器（如：自動餵龍機、星星捕捉網）。\n   * **[3] -> [捷徑任務]**：目標是快速到達某處（如：趕去參加晚宴、爬上最高的樹）。\n\n**2. 抽選誤用 (Misuse) - 對應 Misuse_Roll (根據道具二選一):**\n   * *若為羅盤*：\n     - **[1] -> [金屬探測器]**：不看方向，把它貼在地上掃描寶藏。\n     - **[2] -> [迴力鏢]**：把它當作投擲武器，想把高處的東西打下來。\n   * *若為羽毛筆*：\n     - **[1] -> [撬棍]**：把它當作螺絲起子或棍子，用力撬開箱子。\n     - **[2] -> [指揮棒]**：把它當作魔法指揮棒，揮舞著指揮傢俱移動。\n\n**3. 抽選制伏方式 (Climax Action) - 對應 Climax_Roll:**\n   * **[1] -> [捕捉]**：拿出網子、帽子或袋子，像抓蝴蝶一樣精準地套住道具。\n   * **[2] -> [卡住]**：引導道具衝進一個狹窄的縫隙（或黏黏的果凍裡），讓它動彈不得。\n   * **[3] -> [安撫]**：(筆) 給它一張巨大的白紙讓它寫個夠；(羅盤) 丟給它一顆真的糖果讓它停下來吃。\n\n**4. 抽選解決方式 (Resolution Type) - 對應 Resolution_Roll:**\n   * **[1] -> [物理撞擊]**：亂飛的零件/道具剛好撞進了正確的位置（喀嚓一聲修好了/打開了）。\n   * **[2] -> [痕跡揭示]**：道具在牆上亂畫的塗鴉，退後一步看，竟然是一張藏寶圖或解謎關鍵。\n   * **[3] -> [視角轉換]**：雖然沒到達原本的目的地，但被彈飛到了更高的地方，反而看到了更棒的景色（或原本找不到的路）。\n\n**第三步：輸出最終設定**\n> **[Story Logic Setup]**\n> * **Quest**: [根據 Quest_Roll 填入]\n> * **Misuse**: [根據 Misuse_Roll 填入]\n> * **Climax Action**: [根據 Climax_Roll 填入]\n> * **Resolution**: [根據 Resolution_Roll 填入]",
+    "prompt_instruction": "[Format: No Headers]\n\n**[Story Logic Setup]**\n> * **Quest**: [根據 Quest_Roll 填入]\n> * **Misuse**: [根據 Misuse_Roll 填入]\n> * **Climax Action**: [根據 Climax_Roll 填入]\n> * **Resolution**: [根據 Resolution_Roll 填入]\n",
     "word_limit": null
   },
   {
@@ -38,7 +38,7 @@
     "story_type": "Sharing",
     "phase_id": "Soc_Share_00",
     "phase_name": "Logic Setup",
-    "prompt_instruction": "[Format: Logic Block Only]\n\n**絕對禁止**在此階段撰寫任何故事內容。你必須嚴格執行以下「亂數骰子」步驟來決定變數，以確保故事的多樣性。\n\n**第一步：執行亂數生成 (RNG)**\n請在腦中為每個類別擲一個 1-3 的骰子，並輸出結果：\n> **[Dice Roll]**\n> * **Target_Roll**: (1-3)\n> * **Coop_Roll**: (1-3)\n> * **Prop_Roll**: (1-3)\n\n**第二步：根據亂數查表 (Lookup Table)**\n\n**1. 爭奪目標 (Target Object) - 對應 Target_Roll:**\n   * **[1] -> [巨大美食]**：比頭還大的糖果/發光的果實。\n   * **[2] -> [稀有玩具]**：唯一的飛天滑板/會唱歌的寶石/國王的金皇冠。\n   * **[3] -> [關鍵線索]**：最後一張藏寶圖/通往祕密的鑰匙。\n\n**2. 合作模式 (Co-op Mode) - 對應 Coop_Roll:**\n   * **[1] -> [模式 A：同步檢定]**：道具要求兩人動作/節奏完全一致（喊口號 1-2-1-2），否則道具會亂動。\n   * **[2] -> [模式 B：分工包抄]**：道具帶著目標跑了，一人負責擋路，一人負責抓。\n   * **[3] -> [模式 C：物理平衡]**：兩人必須保持在道具兩端（或蹺蹺板兩端）的平衡，誰動得太快就會翻車。\n\n**3. 道具失控原因 (Prop Backfire) - 對應 Prop_Roll (根據道具二選一查表):**\n   * *若為羅盤 (嚴禁吸力)*：\n     - **[1] -> [貪吃暴衝]**：指針為了追目標物而拖著主角跑 (Chase)。\n     - **[2] -> [暈眩旋轉]**：指針轉太快產生暈眩力場，兩人走不直線 (Dizzy)。\n     - **[3] -> [重力壓制]**：羅盤誤食了「重力方糖」，變得像大石頭一樣重，必須兩人合力才抬得動 (Heavy)。\n   * *若為羽毛筆*：\n     - **[1] -> [絕對界線]**：畫出一個圈圈或牆壁，限制兩人活動範圍 (Barrier)。\n     - **[2] -> [契約強制]**：在空中寫下「必須握手」或「必須一起跳」的規則 (Contract)。\n     - **[3] -> [搔癢懲罰]**：筆尖變成軟毛，誰敢獨吞或是吵架，筆就會去搔他的胳吱窩 (Tickle).\n\n**第三步：輸出最終設定**\n> **[Story Logic Setup]**\n> * **Target**: [根據 Target_Roll 填入]\n> * **Co-op Mode**: [根據 Coop_Roll 填入]\n> * **Prop Backfire**: [根據 Prop_Roll 填入]",
+    "prompt_instruction": "[Format: No Headers]\n\n**[Story Logic Setup]**\n> * **Target**: [根據 Target_Roll 填入]\n> * **Co-op Mode**: [根據 Coop_Roll 填入]\n> * **Prop Backfire**: [根據 Prop_Roll 填入]\n",
     "word_limit": null
   },
   {
@@ -73,7 +73,7 @@
     "story_type": "Nature",
     "phase_id": "Nat_setting",
     "phase_name": "故事設定",
-    "prompt_instruction": "[Format: Logic Block Only]\n\n**絕對禁止**在此階段撰寫任何故事內容。你必須嚴格執行以下「亂數骰子」步驟來決定變數，以確保故事的多樣性。\n\n**第一步：執行亂數生成 (RNG)**\n請在腦中為每個類別擲一個骰子，並輸出結果：\n> **[Dice Roll]**\n> * **Scene_Roll**: (1-6)\n> * **NPC_Roll**: (1-3)\n> * **Prop_Roll**: (1-2)\n> * **Play_Roll**: (1-3)\n\n**第二步：根據亂數查表 (Lookup Table)**\n\n**1. 抽選自然情境 (Scene) - 對應 Scene_Roll:**\n   * **[1] -> [植物]**：花苞還沒開、果實還是綠色的。\n   * **[2] -> [季節]**：秋天的葉子還沒變紅、冬天還沒下雪。\n   * **[3] -> [水流]**：小溪流動得太慢、瀑布像是在滴水。\n   * **[4] -> [結冰]**：湖面還沒結冰、冰柱還沒長出來。\n   * **[5] -> [風雲]**：風太小吹不動風箏、雲朵一動也不動。\n   * **[6] -> [光影]**：太陽下山太慢、彩虹還沒出來。\n\n**2. 抽選 NPC 與破壞動機 (NPC) - 對應 NPC_Roll:**\n   * **[1] -> [瘋狂科學家]**：嫌太慢，用「加速藥水/機器」想把大自然變快轉實驗室。\n   * **[2] -> [傲慢國王]**：嫌太慢，用「皇家權杖/鬧鐘」命令大自然配合行程表。\n   * **[3] -> [搗蛋小丑]**：嫌太無聊，用「惡作劇道具(吹風機/冰塊)」想搞亂季節看好戲。\n\n**3. 抽選道具干擾方式 (Prop Prank) - 對應 Prop_Roll (根據道具二選一):**\n   * *若為羅盤*：\n     - **[1] -> [催眠旋轉]**：指針瘋狂旋轉產生催眠光波，讓 NPC 頭暈眼花。\n     - **[2] -> [貪吃誤導]**：指針死死指著 NPC 的午餐盒，讓 NPC 分心去追食物。\n   * *若為羽毛筆*：\n     - **[1] -> [滑稽塗鴉]**：在 NPC 臉上畫上滑稽的貓鬍鬚，讓他失去威嚴。\n     - **[2] -> [誠實標籤]**：寫下 NPC 內心的彆扭實話（如「我怕黑」），讓衝突軟化。\n\n**4. 抽選順應自然的方式 (Nature Play) - 對應 Play_Roll:**\n   * **[1] -> [動態遊樂]**：把變大的自然物當作跳床、滑梯或鞦韆。\n   * **[2] -> [靜態享受]**：躺在花海/落葉堆裡睡覺、躲在巨大果實後玩捉迷藏。\n   * **[3] -> [感官體驗]**：聆聽變大的聲音（如風的歌聲）、觀察放大的紋路或光影。\n\n**第三步：輸出最終設定**\n> **[Story Logic Setup]**\n> * **Scene**: [根據 Scene_Roll 填入]\n> * **NPC**: [根據 NPC_Roll 填入]\n> * **Prop Prank**: [根據 Prop_Roll 填入]\n> * **Nature Play**: [根據 Play_Roll 填入]",
+    "prompt_instruction": "[Format: No Headers]\n\n**[Story Logic Setup]**\n> * **Scene**: [根據 Scene_Roll 填入]\n> * **NPC**: [根據 NPC_Roll 填入]\n> * **Prop Prank**: [根據 Prop_Roll 填入]\n> * **Nature Play**: [根據 Play_Roll 填入]\n",
     "word_limit": null
   },
   {

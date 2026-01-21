@@ -24,6 +24,11 @@ def load_json(filename):
     with open(filepath, 'r', encoding='utf-8') as f:
         return json.load(f)
 
+
+def load_logic_config():
+    """載入 Logic.json 配置"""
+    return load_json("Logic.json")
+
 def load_template_file():
     template_path = os.path.join(DATA_FOLDER, "prompt_to_follow.md")
     with open(template_path, 'r', encoding='utf-8') as f:
@@ -89,40 +94,70 @@ def get_phase_instruction(story_type, phase_name):
             return str(instructions) if instructions else ''
     return ''
 
-def get_logic_setup_instruction(story_type):
-    """取得指定 story_type 的 Logic Setup 指令（對應 prompt_to_follow.md 的 {{Logic_setup}}）
-    
-    規則：
-    1) 優先找 phase_name 含有 'logic'（不分大小寫）的列
-    2) 若找不到，針對 Nature 類型（或未命名 logic phase）再找 phase_id 含 'setting' 的列
-    3) 都找不到則回傳空字串
-    """
-    templates = load_json("短篇故事模板.json")
-    st = story_type.strip()
-    
-    # 1) phase_name contains "logic"
-    for row in templates:
-        if row.get('story_type', '').strip() != st:
-            continue
-        phase_name_value = (row.get('phase_name') or '').strip()
-        if 'logic' in phase_name_value.lower():
-            instructions = row.get('prompt_instruction', '')
-            if isinstance(instructions, list):
-                return '\n'.join(instructions)
-            return str(instructions).strip()
-    
-    # 2) fallback: phase_id contains "setting" (e.g. Nat_setting)
-    for row in templates:
-        if row.get('story_type', '').strip() != st:
-            continue
-        phase_id_value = (row.get('phase_id') or '').strip()
-        if 'setting' in phase_id_value.lower():
-            instructions = row.get('prompt_instruction', '')
-            if isinstance(instructions, list):
-                return '\n'.join(instructions)
-            return str(instructions).strip()
-    
-    return ''
+def get_logic_setup_instruction(story_type, prop_id):
+    """取得指定 story_type 的 Logic Setup，並隨機填入 Logic.json 的組件"""
+    cfg = load_logic_config()
+
+    def prop_key(pid: str) -> str:
+        # 依 prop_id 對應 Logic.json 的鍵
+        if (pid or "").upper() == "K01":
+            return "K01"  # compass
+        if (pid or "").upper() == "K02":
+            return "K02"  # quill
+        return (pid or "").upper()
+
+    st_lower = story_type.strip().lower()
+    pk = prop_key(prop_id)
+
+    if st_lower == "adventure comedy":
+        data = cfg.get("adventure_comedy", {})
+        quest = random.choice(data.get("quest", [])) if data.get("quest") else ""
+        misuse_list = data.get("misuse", {}).get(pk, [])
+        misuse = random.choice(misuse_list) if misuse_list else ""
+        climax_list = data.get("climax_action", {}).get(pk, [])
+        climax = random.choice(climax_list) if climax_list else ""
+        resolution = random.choice(data.get("resolution", [])) if data.get("resolution") else ""
+
+        return (
+            "**[Story Logic Setup]**\n"
+            f"> * **Quest**: {quest}\n"
+            f"> * **Misuse**: {misuse}\n"
+            f"> * **Climax Action**: {climax}\n"
+            f"> * **Resolution**: {resolution}\n"
+        )
+
+    if st_lower == "sharing":
+        data = cfg.get("sharing", {})
+        target = random.choice(data.get("target", [])) if data.get("target") else ""
+        coop = random.choice(data.get("coop_mode", [])) if data.get("coop_mode") else ""
+        backfire_list = data.get("prop_backfire", {}).get(pk, [])
+        backfire = random.choice(backfire_list) if backfire_list else ""
+
+        return (
+            "**[Story Logic Setup]**\n"
+            f"> * **Target**: {target}\n"
+            f"> * **Co-op Mode**: {coop}\n"
+            f"> * **Prop Backfire**: {backfire}\n"
+        )
+
+    if st_lower == "nature":
+        data = cfg.get("nature", {})
+        scene = random.choice(data.get("scene", [])) if data.get("scene") else ""
+        npc = random.choice(data.get("npc", [])) if data.get("npc") else ""
+        prank_list = data.get("prop_prank", {}).get(pk, [])
+        prank = random.choice(prank_list) if prank_list else ""
+        play = random.choice(data.get("nature_play", [])) if data.get("nature_play") else ""
+
+        return (
+            "**[Story Logic Setup]**\n"
+            f"> * **Scene**: {scene}\n"
+            f"> * **NPC**: {npc}\n"
+            f"> * **Prop Prank**: {prank}\n"
+            f"> * **Nature Play**: {play}\n"
+        )
+
+    # Unknown story type
+    return ""
 
 def get_total_word_limit(story_type):
     """計算指定故事類型所有 Phase 的總字數限制（中文字）
@@ -308,8 +343,8 @@ def fill_template(template, story_type, elements):
     
     theme = story_type
     
-    # 獲取各階段指令
-    logic_setup = get_logic_setup_instruction(story_type)
+    # 獲取各階段指令（含 Logic.json 隨機抽取）
+    logic_setup = get_logic_setup_instruction(story_type, elements.get('prop_id'))
     task_phase_1 = get_phase_instruction(story_type, 'Setup')
     task_phase_2 = get_phase_instruction(story_type, 'Twist')
     task_phase_3 = get_phase_instruction(story_type, 'Climax')
@@ -689,12 +724,15 @@ def main():
     total_fail = 0
     output_dirs = []
     
-    for story_type in story_types:
-        success, fail, output_dir = generate_stories_for_type(story_type, template)
-        total_success += success
-        total_fail += fail
-        output_dirs.append(output_dir)
+    # for story_type in story_types:
+    #     success, fail, output_dir = generate_stories_for_type(story_type, template)
+    #     total_success += success
+    #     total_fail += fail
+    #     output_dirs.append(output_dir)
     
+    success, fail, output_dir = generate_stories_for_type("adventure comedy", template)
+    output_dirs.append(output_dir)
+
     # 4. 顯示最終總結
     print(f"\n{'='*80}")
     print("🎉 所有故事生成完成!")

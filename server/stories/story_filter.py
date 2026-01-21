@@ -13,16 +13,11 @@ import sys
 
 def extract_story_content(content):
     """
-    抽取「故事正文」並清理字數註記。
+    抽取「故事正文」並清理標記。
     
-    為了相容不同生成版本，正文起點不只可能是：
-    - Output Story (AI 生成結果)
-    - Output Story ...
-    
-    也可能在 Output Story 之後仍包含一段 setup/logic 區塊（如 [Story Setup]、
-    [Story Logic Setup]、條列 * / 引用 >），需要濾掉後才是正文。
-    
-    若找不到任何 marker，則視為內容可能已經是正文，僅做基本清理。
+    1. 刪除 [Story Start] 和 [Story End] 標記
+    2. 移除 setup/logic 區塊（如 [Story Setup]、[Story Logic Setup]、條列 * / 引用 >）
+    3. 保留字數註記（不刪除 "(約..字)"）
     
     Args:
         content: Original file content
@@ -36,24 +31,11 @@ def extract_story_content(content):
     # Normalize newlines for consistent regex behavior
     text = content.replace("\r\n", "\n").replace("\r", "\n")
     
-    def _slice_after_first_marker(src: str) -> str:
-        """
-        Prefer slicing after an 'Output Story...' line if present.
-        Fallback: slice after a '[Story Start]' line if present.
-        """
-        # 1) Output Story... (allow variants like "Output Story", "Output Story (AI 生成結果)")
-        m = re.search(r'(?mi)^\s*Output Story\b.*$', src)
-        if m:
-            return src[m.end():].lstrip("\n")
-        
-        # 2) Some formats explicitly include a [Story Start] section header
-        m = re.search(r'(?mi)^\s*\[Story Start\]\s*$', src)
-        if m:
-            return src[m.end():].lstrip("\n")
-        
-        return src
+    # 刪除 [Story Start] 和 [Story End] 標記（整行）
+    text = re.sub(r'(?mi)^\s*\[Story Start\]\s*$', '', text)
+    text = re.sub(r'(?mi)^\s*\[Story End\]\s*$', '', text)
     
-    story_content = _slice_after_first_marker(text).strip()
+    story_content = text.strip()
     if not story_content:
         return ""
     
@@ -66,7 +48,6 @@ def extract_story_content(content):
         # Examples:
         # **[Story Logic Setup]**
         # [Story Setup]
-        # [Story Start]
         if re.match(r'^\*{0,2}\[[^\]]+\]\*{0,2}$', s):
             return True
         
@@ -93,11 +74,7 @@ def extract_story_content(content):
         i += 1
     story_content = "\n".join(lines[i:]).strip()
     
-    # Remove word count comments like "(200字)", "（約200字）", "(约200字)", etc.
-    # Pattern matches: halfwidth or fullwidth brackets + optional 約/约 + digits + 字 + matching bracket
-    # Supports both: () and （）
-    word_count_pattern = r'[（(][約约]?\d+字[)）]'
-    story_content = re.sub(word_count_pattern, '', story_content)
+    # 不再刪除字數註記，保留 "(約..字)" 等格式
     
     return story_content.strip()
 
@@ -315,11 +292,11 @@ def process_file(file_path):
     except Exception as e:
         return (False, None, f"Error reading file: {e}")
     
-    # Extract story content after marker
+    # Extract and clean story content
     cleaned_content = extract_story_content(content)
     
     if not cleaned_content:
-        return (False, None, "No story content found after marker")
+        return (False, None, "No story content found")
     
     # Count Chinese characters
     char_count = count_chinese_characters(cleaned_content)
