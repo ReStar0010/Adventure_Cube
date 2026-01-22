@@ -11,28 +11,28 @@
     "phase_id": "TTS_Cpt_01",
     "phase_name": "Setup",
     "prompt_instruction": "[Format: No Headers]\n\n請讀取 **[Story Logic Setup]** 設定，開始撰寫故事：\n\n1.  **感官開場**：描述 {Location} 裡一個有趣的細節（例如：地毯像貓一樣打呼、牆壁會搔癢）。\n2.  **行動開始**：主角們正在執行 **[Specific Goal]** 任務，但是遇到了大麻煩（如：太高拿不到、找不到零件）。\n3.  **創意誤用**：{Character_B} 拿出 {Prop}，自信滿滿地說要用 **[Prop Misuse]** 的方式解決問題，並且立刻開始動手（例如：真的把羽毛筆當撬棍用力撬）。",
-    "word_limit": 150
+    "word_limit": 175
   },
   {
     "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_02",
     "phase_name": "Twist",
     "prompt_instruction": "[Format: Continuous Text]\n\n1.  **抗議與暴走**：道具發出怪聲抗議，接著徹底失控！它展現「核心功能」來搗亂（後果包括但不限於以下雙範例，嚴禁變成雷射槍）：\n    * *若為羅盤 (貪吃/指方向)*：\n      (A) **暴衝導航**：鎖定一隻蒼蠅（以為是糖果）拖著主角狂奔。\n      (B) **龍捲風模式**：高速旋轉產生吸力，把周圍的東西都吸在主角身上。\n    * *若為羽毛筆 (誠實/寫字)*：\n      (A) **塗鴉大師**：掙脫手掌，在主角臉上或任務清單上瘋狂亂畫。\n      (B) **洩密廣播**：把主角心裡的尷尬秘密（如「我其實想回家」）寫滿牆壁。\n\n2.  **混亂場面**：主角們為了追回道具（或躲避攻擊），在場景中狼狽地跑來跑去。",
-    "word_limit": 250
+    "word_limit": 275
   },
   {
     "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_03",
     "phase_name": "Climax",
     "prompt_instruction": "[Format: Continuous Text]\n\n1.  **環境連鎖**：在追逐中，他們不小心撞到了 {Location} 的機關，引發連鎖反應（情境包括但不限於以下雙範例）：\n    * *魔法城堡*：撞倒了盔甲，盔甲像骨牌一樣倒下，最後一片剛好踢到了開關。\n    * *月球/果凍*：踩到了彈跳機關，兩人像彈珠一樣在牆壁之間彈來彈去。\n\n2.  **執行制伏**：{Character_A} 根據 **[Climax Action]** 的設定，終於制伏了失控的道具。\n    * *若為 [捕捉]*：用帽子蓋住。\n    * *若為 [卡住]*：引導它撞進果凍裡。\n    * *若為 [安撫]*：塞一顆糖果給它。",
-    "word_limit": 250
+    "word_limit": 275
   },
   {
     "story_type": "adventure comedy",
     "phase_id": "TTS_Cpt_04",
     "phase_name": "Ending",
     "prompt_instruction": "[Format: Continuous Text]\n\n1.  **狼狽落地**：兩人摔成一團。\n\n2.  **誤打誤撞**：煙霧散去，他們發現剛才的混亂竟然「意外達成」了 **[Quest]**，且方式完全符合 **[Resolution]** 的設定。\n    * *若為 [物理撞擊]*：撞開了密室。\n    * *若為 [痕跡揭示]*：牆上的塗鴉其實是地圖。\n    * *若為 [視角轉換]*：雖然掛在樹上，但風景超好。\n\n3.  **結局**：道具冷靜下來，兩人在笑聲中收尾。",
-    "word_limit": 150
+    "word_limit": 175
   },
   {
     "story_type": "Sharing",

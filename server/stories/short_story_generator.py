@@ -72,6 +72,49 @@ def get_all_character_combinations():
     
     return combinations
 
+
+def get_location_combinations():
+    """背景組合：W01A01, W01A02, W02A01, W02A02"""
+    return [
+        ("W01", "A01"),
+        ("W01", "A02"),
+        ("W02", "A01"),
+        ("W02", "A02"),
+    ]
+
+
+def get_prop_ids():
+    """道具 ID 列表（K01, K02）。"""
+    return ["K01", "K02"]
+
+
+def get_full_expected_params_for_type(story_type):
+    """
+    回傳該故事類型「應有的完整組合」之參數列表（與 generate_stories_for_type 一致）。
+    
+    Returns:
+        list[dict]: 每個元素為 regenerate_stories 所需的參數 dict
+    """
+    character_combinations = get_all_character_combinations()
+    location_combinations = get_location_combinations()
+    prop_ids = get_prop_ids()
+    out = []
+    for char_a_id, char_a_trait, char_b_id, char_b_trait in character_combinations:
+        for world_id, location_id in location_combinations:
+            for prop_id in prop_ids:
+                out.append({
+                    "story_type": story_type,
+                    "char_a_id": char_a_id,
+                    "char_a_trait": char_a_trait,
+                    "char_b_id": char_b_id,
+                    "char_b_trait": char_b_trait,
+                    "world_id": world_id,
+                    "location_id": location_id,
+                    "prop_id": prop_id,
+                })
+    return out
+
+
 def get_phase_instruction(story_type, phase_name):
     """從短篇故事模板.json 提取特定 Phase 的指令
     
@@ -540,7 +583,7 @@ def generate_single_story(story_type, char_a_id, char_a_trait, char_b_id, char_b
     
     return True
 
-def regenerate_stories(story_params_list):
+def regenerate_stories(story_params_list, output_dir_suffix=""):
     """
     重新生成指定的故事列表
     
@@ -556,6 +599,7 @@ def regenerate_stories(story_params_list):
                 'location_id': str,
                 'prop_id': str
             }
+        output_dir_suffix: 輸出目錄後綴（例如 "_2"），用於區分不同批次的故事
     """
     if not story_params_list:
         print("沒有需要重新生成的故事。")
@@ -594,7 +638,8 @@ def regenerate_stories(story_params_list):
             print(f"   📏 每個故事目標字數: {total_word_limit} 字")
         
         # 創建輸出目錄（相對於腳本目錄）
-        output_dir = os.path.join(base_dir, f"stories_{story_type.replace(' ', '_')}")
+        dir_name = f"stories_{story_type.replace(' ', '_')}{output_dir_suffix}"
+        output_dir = os.path.join(base_dir, dir_name)
         print(f"💾 輸出目錄: {output_dir}")
         
         print(f"\n開始生成故事...\n")
@@ -649,17 +694,8 @@ def generate_stories_for_type(story_type, template):
     
     # 1. 自動生成所有角色組合
     character_combinations = get_all_character_combinations()
-    
-    # 背景：W01A01, W01A02, W02A01, W02A02
-    location_combinations = [
-        ("W01", "A01"),
-        ("W01", "A02"),
-        ("W02", "A01"),
-        ("W02", "A02"),
-    ]
-    
-    # 道具：K01, K02（不包括 K00，因為它不存在）
-    prop_ids = ["K01", "K02"]
+    location_combinations = get_location_combinations()
+    prop_ids = get_prop_ids()
     
     # 2. 計算總數
     total_combinations = len(character_combinations) * len(location_combinations) * len(prop_ids)
