@@ -997,9 +997,9 @@ def process_story_files(directory: str):
 if __name__ == "__main__":
     # 獲取腳本所在目錄
     script_dir = Path(__file__).parent
-    stories_dir_ADV = script_dir / "stories_adventure_comedy"
-    stories_dir_NAT = script_dir / "stories_Nature"
-    stories_dir_SHR = script_dir / "stories_Sharing"
+    stories_dir_ADV = script_dir / "stories_adventure_comedy_2"
+    stories_dir_NAT = script_dir / "stories_Nature_2"
+    stories_dir_SHR = script_dir / "stories_Sharing_2"
     
     print("開始處理故事文件...")
     print(f"目標目錄: {stories_dir_ADV}")

@@ -187,6 +187,76 @@ def has_non_chinese_characters(text):
     return False
 
 
+def _params_to_key(p):
+    """將故事參數轉成可比較的 tuple，用於集合運算。"""
+    return (
+        p["char_a_id"], p["char_a_trait"], p["char_b_id"], p["char_b_trait"],
+        p["world_id"], p["location_id"], p["prop_id"],
+    )
+
+
+def _story_type_to_dir_base(story_type):
+    """故事類型 -> 目錄名前綴（不含 _2）。"""
+    return "stories_" + story_type.replace(" ", "_")
+
+
+def get_existing_combination_keys(base_dir, story_type):
+    """
+    掃描該故事類型對應的目錄（含 _2），回傳已存在檔案的組合 key 集合。
+    """
+    base = Path(base_dir)
+    dir_base = _story_type_to_dir_base(story_type)
+    keys = set()
+    for suffix in ("", "_2"):
+        d = base / (dir_base + suffix)
+        if not d.is_dir():
+            continue
+        for f in d.glob("*.txt"):
+            params = parse_filename(f.name, d.name)
+            if params:
+                keys.add(_params_to_key(params))
+    return keys
+
+
+def run_fill_missing():
+    """
+    補齊缺失組合：每種故事類型應有完整組合，缺失者重新生成並輸出到 _2 目錄。
+    """
+    base_dir = Path(__file__).parent
+    story_types = ["Nature", "adventure comedy", "Sharing"]
+
+    try:
+        from short_story_generator import (
+            get_full_expected_params_for_type,
+            regenerate_stories,
+        )
+    except Exception as e:
+        print(f"無法載入 short_story_generator: {e}")
+        return
+
+    all_missing = []
+    for st in story_types:
+        full = get_full_expected_params_for_type(st)
+        existing = get_existing_combination_keys(base_dir, st)
+        missing_params = [p for p in full if _params_to_key(p) not in existing]
+        n_missing = len(missing_params)
+        n_full = len(full)
+        print(f"  {st}: 應有 {n_full} 組，已有 {n_full - n_missing} 組，缺失 {n_missing} 組")
+        all_missing.extend(missing_params)
+
+    if not all_missing:
+        print("\n所有故事類型皆已補齊，無需重新生成。")
+        return
+
+    print(f"\n共需重新生成 {len(all_missing)} 個故事，輸出至各類型 _2 目錄。")
+    confirm = input("是否繼續？(yes/no): ")
+    if confirm.lower() not in ("yes", "y"):
+        print("已取消。")
+        return
+
+    regenerate_stories(all_missing, output_dir_suffix="_2")
+
+
 def parse_filename(filename, directory_name):
     """
     從文件名解析故事參數
@@ -302,7 +372,7 @@ def process_file(file_path):
     char_count = count_chinese_characters(cleaned_content)
     
     # Check word count range (900-1400)
-    if char_count < 800 or char_count > 1200:
+    if char_count < 700 or char_count > 1250:
         return (False, None, f"Word count out of range: {char_count} ")
     
     # Check for non-Chinese characters
@@ -315,15 +385,25 @@ def process_file(file_path):
 def main():
     """
     Main function to filter and process story files.
+    支援 --fill-missing：補齊每種故事類型的缺失組合，重新生成到 _2 目錄。
     """
+    if "--fill-missing" in sys.argv:
+        print("Fill-missing 模式：補齊缺失組合並重新生成至 _2 目錄")
+        print("=" * 60)
+        run_fill_missing()
+        return
+
     # Base directory
     base_dir = Path(__file__).parent
     
-    # Target directories
+    # Target directories (包含原始目錄和 _2 目錄)
     target_dirs = [
         base_dir / "stories_Nature",
+        base_dir / "stories_Nature_2",
         base_dir / "stories_adventure_comedy",
-        base_dir / "stories_Sharing"
+        base_dir / "stories_adventure_comedy_2",
+        base_dir / "stories_Sharing",
+        base_dir / "stories_Sharing_2"
     ]
     
     stats = {
@@ -429,8 +509,8 @@ def main():
                     sys.path.insert(0, str(base_dir))
                     from short_story_generator import regenerate_stories
                     
-                    # 調用生成器重新生成故事
-                    regenerate_stories(stories_to_regenerate)
+                    # 一律重新生成到 _2 目錄（含從 _2 被 filter 掉的 → 同目錄補回）
+                    regenerate_stories(stories_to_regenerate, output_dir_suffix="_2")
                 except Exception as e:
                     print(f"  ✗ 重新生成故事時發生錯誤: {e}")
                     import traceback
