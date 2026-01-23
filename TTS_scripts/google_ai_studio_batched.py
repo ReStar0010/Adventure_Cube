@@ -20,6 +20,9 @@
     
     5. 使用風格指示:
        python google_ai_studio_batched.py --style "溫暖且友好"
+    
+    6. 並行處理（加速批量生成）:
+       python google_ai_studio_batched.py --workers 8
 """
 
 import argparse
@@ -28,8 +31,10 @@ import os
 import re
 import struct
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
+from threading import Lock
 from typing import List, Optional, Tuple
 
 try:
@@ -319,6 +324,67 @@ def generate_audio(
             return False, "保存文件失敗"
 
 
+def _process_single_file(
+    txt_file: Path,
+    output_path: Path,
+    file_index: int,
+    total_files: int,
+    api_key: Optional[str],
+    voice_name: str,
+    multi_speaker: bool,
+    temperature: float,
+    model: str,
+    style_instruction: Optional[str],
+    custom_speaker_voices: Optional[dict],
+    print_lock: Lock,
+) -> Tuple[bool, str]:
+    """
+    處理單個文件的輔助函數（用於並行處理）
+    
+    Returns:
+        Tuple[bool, str]: (成功與否, 文件名或錯誤訊息)
+    """
+    with print_lock:
+        print(f"\n[{file_index}/{total_files}] 處理: {txt_file.name}")
+    
+    # 讀取文本內容
+    try:
+        with open(txt_file, 'r', encoding='utf-8') as f:
+            text = f.read()
+        with print_lock:
+            print(f"   文本長度: {len(text)} 字符")
+    except Exception as e:
+        with print_lock:
+            print(f"❌ 讀取文件失敗: {e}")
+        return False, txt_file.name
+    
+    # 生成輸出文件名
+    output_filename = txt_file.stem + ".wav"
+    output_file = output_path / output_filename
+    
+    # 生成音頻
+    success, result = generate_audio(
+        text=text,
+        api_key=api_key,
+        output_file=str(output_file),
+        voice_name=voice_name,
+        multi_speaker=multi_speaker,
+        temperature=temperature,
+        model=model,
+        style_instruction=style_instruction,
+        custom_speaker_voices=custom_speaker_voices,
+    )
+    
+    if success:
+        with print_lock:
+            print(f"✅ 成功: {output_file.name}")
+        return True, txt_file.name
+    else:
+        with print_lock:
+            print(f"❌ 失敗: {result}")
+        return False, txt_file.name
+
+
 def process_batch(
     input_dir: str,
     output_dir: str,
@@ -329,6 +395,7 @@ def process_batch(
     model: str = "gemini-2.5-flash-preview-tts",
     style_instruction: Optional[str] = None,
     custom_speaker_voices: Optional[dict] = None,
+    max_workers: int = 4,
 ) -> Tuple[int, int]:
     """
     批量處理目錄下的所有文本文件
@@ -343,6 +410,7 @@ def process_batch(
         model: 使用的模型
         style_instruction: 風格指示
         custom_speaker_voices: 自定義說話人語音映射
+        max_workers: 最大並行工作線程數（預設: 4）
     
     Returns:
         Tuple[int, int]: (成功數量, 失敗數量)
@@ -374,51 +442,44 @@ def process_batch(
         print(f"🎨 風格指示: {style_instruction}")
     print(f"🎤 語音: {voice_name}")
     print(f"🤖 模型: {model}")
+    print(f"⚡ 並行工作線程數: {max_workers}")
     print("-" * 60)
     
     success_count = 0
     fail_count = 0
     failed_files = []
+    print_lock = Lock()
     
-    # 處理每個文件
-    for i, txt_file in enumerate(txt_files, 1):
-        print(f"\n[{i}/{len(txt_files)}] 處理: {txt_file.name}")
+    # 使用線程池並行處理文件
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # 提交所有任務
+        future_to_file = {
+            executor.submit(
+                _process_single_file,
+                txt_file,
+                output_path,
+                i + 1,
+                len(txt_files),
+                api_key,
+                voice_name,
+                multi_speaker,
+                temperature,
+                model,
+                style_instruction,
+                custom_speaker_voices,
+                print_lock,
+            ): txt_file
+            for i, txt_file in enumerate(txt_files)
+        }
         
-        # 讀取文本內容
-        try:
-            with open(txt_file, 'r', encoding='utf-8') as f:
-                text = f.read()
-            print(f"   文本長度: {len(text)} 字符")
-        except Exception as e:
-            print(f"❌ 讀取文件失敗: {e}")
-            fail_count += 1
-            failed_files.append(txt_file.name)
-            continue
-        
-        # 生成輸出文件名
-        output_filename = txt_file.stem + ".wav"  # 使用 .wav 作為預設擴展名
-        output_file = output_path / output_filename
-        
-        # 生成音頻
-        success, result = generate_audio(
-            text=text,
-            api_key=api_key,
-            output_file=str(output_file),
-            voice_name=voice_name,
-            multi_speaker=multi_speaker,
-            temperature=temperature,
-            model=model,
-            style_instruction=style_instruction,
-            custom_speaker_voices=custom_speaker_voices,
-        )
-        
-        if success:
-            print(f"✅ 成功: {output_file.name}")
-            success_count += 1
-        else:
-            print(f"❌ 失敗: {result}")
-            fail_count += 1
-            failed_files.append(txt_file.name)
+        # 收集結果
+        for future in as_completed(future_to_file):
+            success, file_name = future.result()
+            if success:
+                success_count += 1
+            else:
+                fail_count += 1
+                failed_files.append(file_name)
     
     # 顯示處理摘要
     print("\n" + "=" * 60)
@@ -456,6 +517,9 @@ def main():
   
   # 多說話人模式
   python google_ai_studio_batched.py --multi-speaker
+  
+  # 並行處理（使用 8 個工作線程加速處理）
+  python google_ai_studio_batched.py --workers 8
 
 可用的預設語音:
   - Zephyr: 溫暖、友好的女性聲音（預設）
@@ -544,6 +608,13 @@ def main():
         help='自定義說話人語音映射（多說話人模式），格式：Speaker 1:Zephyr,Speaker 2:Puck'
     )
     
+    parser.add_argument(
+        '--workers', '-w',
+        type=int,
+        default=4,
+        help='並行處理的工作線程數（預設: 4）。建議值：2-8，取決於 API 速率限制和網絡帶寬'
+    )
+    
     args = parser.parse_args()
     
     # 驗證溫度範圍
@@ -564,6 +635,13 @@ def main():
             print(f"⚠️  警告: 解析說話人語音映射失敗: {e}，將使用預設映射")
             custom_speaker_voices = None
     
+    # 驗證並行度
+    if args.workers < 1:
+        print(f"⚠️  警告: 工作線程數 {args.workers} 無效，將使用 1")
+        args.workers = 1
+    elif args.workers > 16:
+        print(f"⚠️  警告: 工作線程數 {args.workers} 過高，建議使用 2-8 之間的值")
+    
     # 批量處理
     success_count, fail_count = process_batch(
         input_dir=args.input_dir,
@@ -575,6 +653,7 @@ def main():
         model=args.model,
         style_instruction=args.style,
         custom_speaker_voices=custom_speaker_voices,
+        max_workers=args.workers,
     )
     
     # 退出碼
