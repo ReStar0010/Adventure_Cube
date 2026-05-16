@@ -103,5 +103,61 @@
     "phase_name": "Ending (時間的禮物)",
     "prompt_instruction": "[Format: Continuous Text]\n\n1.  **平靜回歸**：大自然慢慢恢復原狀（或變成一個無害的新狀態）。\n\n2.  **和解禮物**：NPC 留下一個道歉禮物（如：不會響的鬧鐘、種子、彩色冰塊）後害羞地離開。\n\n3.  **結尾**：主角們繼續享受慢活時光。",
     "word_limit": 150
+  },
+  {
+    "story_type": "Science",
+    "phase_id": "Invention_Intro_API",
+    "phase_name": "Intro (好奇的火花)",
+    "prompt_instruction": "[Format: Continuous Text]\n[Story Start]\n\n1. **主角登場**：{Character} 在 {Location} 的日常活動中。\n\n2. **奇怪現象**：看見奇怪現象 {Phenomenon}（例如：為什麼蘋果會掉下來、或感到非常好奇某個事物）。\n\n3. **提出主角的好奇想法**：「讓我來實驗看看原因有多奇怪不得了。」\n\n4. **描述主角以試圖開發實驗假說、但一開始採用了錯誤方向**（例如以為是魔法或成為幫忙）、或感到非常疑慮不確。\n\n5. **提出主角決定去動手實驗，執行了實驗：**\n\n**{{Experiment}}** {Var_Action} - 請註動描寫實驗過程中的動作與變化。",
+    "word_limit": 200
+  },
+  {
+    "story_type": "Science",
+    "phase_id": "Invention_Problem_API",
+    "phase_name": "Problem (錯誤的假設)",
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. **描述實驗成功的初實結果**：主角以為成功的實驗方式微微引發某些結果。\n\n2. **主角非常開心並且繼續做**：但感受錯誤其實力、但是感覺過去不對或有意外產生了。\n\n3. **描述主角內最有目前的方法，嘗試調解某些情況**（例如：重新取消、沖洗手、或把東西藏起來）。",
+    "word_limit": 200
+  },
+  {
+    "story_type": "Science",
+    "phase_id": "Invention_Effort_API",
+    "phase_name": "Effort (混亂的實驗)",
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. **描述主角持續了讓實驗發展成功**：對持續中的實驗嘗試使用各種不同的方式微微引發實際邏輯（例如：用不同成真形成或設定、重新取消或完全重啟）。\n\n2. **描述環境在此功到處的實驗過程中成長**：引發實驗成功的實驗環境越來越混亂（例如：因為太多材料、實驗道具漏到各處、或因太多實驗記錄堆積如山）。\n\n3. **{Topic}** {Var_Theme} - 這理的核心議題成為了故事線索。",
+    "word_limit": 250
+  },
+  {
+    "story_type": "Science",
+    "phase_id": "Invention_Result_API",
+    "phase_name": "Result (驚喜發現時刻)",
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. **描述主角成功發現了真正的答案**：雖然混亂不堪但主角從以成功的實驗中發現了令人驚喜的真相（例如：「打開了！那是因為我使用了兩個不同材料的結合！」）。\n\n2. **描述主角終於理解了**：主角興奮地告訴周圍的人或動物分享他的發現，並獲得正面肯定或變成朋友們的趣事。\n\n3. **結尾**：故事結束在主角帶著新發現回歸日常的開心模樣。",
+    "word_limit": 200
+  },
+  {
+    "story_type": "Social",
+    "phase_id": "Friendship_Intro_API",
+    "phase_name": "Intro (完美的期待)",
+    "prompt_instruction": "[Format: Continuous Text]\n[Story Start]\n\n1. **主角登場**：{Character} 來到 {Location} 的日常活動中。\n\n2. **描述主角看見了 {Phenomenon}**：遇到有趣的事情並非常期待能讓他人感到開心或有特殊表現。\n\n3. **提出想法**：「這樣情境好了！」\n\n4. **描述主角想要有一個被認經的特殊表現**：主角非常開心並且認為自己已經想好了主角該如何展現此情境、但事實並非那麼容易讓主角先前的期望達成。",
+    "word_limit": 200
+  },
+  {
+    "story_type": "Social",
+    "phase_id": "Friendship_Problem_AP",
+    "phase_name": "Problem (內在的衝突)",
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. **描述主角嘗試了各種方法來營造理想效果**：主角為了達到理想狀況而嘗試模仿到各種方法或風格、但感覺很不自在且「假假的」。\n\n2. **主角非常受挫或很失望**：因感覺自己的表現沒有達到主角先前的期望成果並不符合自己真實心情狀態（例如：很尷尬、或故意做太大自己反而很累）。\n\n3. **描述主角內部矛盾掙扎**：主角想要開放或做真實但怕被嘲笑或不小心冒犯到他人之間的心理矛盾掙扎、感到不知所措或不安。",
+    "word_limit": 200
+  },
+  {
+    "story_type": "Social",
+    "phase_id": "Friendship_Action_API",
+    "phase_name": "Action (滑稽的意外)",
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. **描述主角最後非常緊張的畫面展現**：以及因緊張而讓展現變得誇張或狀況（例如：說錯的話或做的怪動作、說的話聽起來很呆板或感到尷尬的反應）。\n\n2. **描述其他人或朋友的反應**：以及因此展現而受到朋友們的注意（或驚訝的NPC反應）。\n\n3. **描述因意外誤會展現而帶來的溝通機會**：如因此誤會或意外反而幫主角打開了和朋友們真實互動的機會（或感到被NPC理解認同）、讓主角發現就算自己展現真實或呆呆的一面原來也沒關係。",
+    "word_limit": 250
+  },
+  {
+    "story_type": "Social",
+    "phase_id": "Friendship_Result_API",
+    "phase_name": "Result (溫柔的接納)",
+    "prompt_instruction": "[Format: Continuous Text]\n\n1. **描述主角最終放棄假面或期望展現成為真實版本**：主角意識到真實做自己或展現真實的情感反而才是讓別人喜歡接近的原因、並獲得朋友們真實的肯定或安心的感受。\n\n2. **和解的場景**：描述朋友們或NPC展現關心或鼓勵或和主角一起慶祝（例如：一起做傻事或一起享受此刻的互動狀態）、讓主角之心得到溫暖。\n\n3. **結尾**：故事結束在主角終於感到輕鬆或接納，不再害怕做真實自己的開心模樣。",
+    "word_limit": 200
   }
 ]

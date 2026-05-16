@@ -1,0 +1,22 @@
+[
+  {"story_id": "SCI_PRI_01", "story_type": "Science", "character_id": "C03", "var_theme": "蹺蹺板的大力士(槓桿原理)", "var_problem": "一隻小狗竟然把胖胖的國王翹得高高的", "var_action": "用長長的木板製作『超級大力士蹺蹺板』來搬運巨石"},
+  {"story_id": "SCI_PRI_02", "story_type": "Science", "character_id": "C03", "var_theme": "頑皮的圓泡泡(表面張力)", "var_problem": "明明是用方形的框框吹,泡泡卻總是變成圓球", "var_action": "製作一組『奇形怪狀泡泡棒』(有星星、愛心和閃電形狀)來測試"},
+  {"story_id": "SCI_PRI_03", "story_type": "Science", "character_id": "C03", "var_theme": "影子變變變(光影)", "var_problem": "早上的影子比巨人還高,中午卻縮得比小貓還短", "var_action": "用手電筒在牆上演一場『怪獸影子戲』"},
+  {"story_id": "SCI_PRI_04", "story_type": "Science", "character_id": "C03", "var_theme": "輪子跑得快(摩擦力)", "var_problem": "方形的箱子推不動,裝上輪子後連風都追不上", "var_action": "幫沉重的書櫃裝上輪子,變成『圖書館賽車』"},
+  {"story_id": "SCI_PRI_05", "story_type": "Science", "character_id": "C03", "var_theme": "太陽能煮蛋(聚熱)", "var_problem": "黑色的石頭在太陽下燙得可以煎蛋,白色的卻涼涼的", "var_action": "用錫箔紙做一個『太陽能烤箱』來烤餅乾"},
+  {"story_id": "SCI_WIZ_01", "story_type": "Science", "character_id": "C04", "var_theme": "雷聲轟隆隆(空氣膨脹)", "var_problem": "閃電過後總是傳來巨大的隆隆聲,像巨人肚子餓", "var_action": "用力拍破一個吹飽氣的紙袋,製造『空氣爆炸聲』"},
+  {"story_id": "SCI_WIZ_02", "story_type": "Science", "character_id": "C04", "var_theme": "天空為什麼會流淚(水蒸氣凝結)", "var_problem": "明明沒有人拿水管沖水,天空卻自己下起雨來", "var_action": "在熱熱的杯子上蓋冷盤子,製造『杯子裡的小雨』"},
+  {"story_id": "SCI_WIZ_03", "story_type": "Science", "character_id": "C04", "var_theme": "彩虹是怎麼來的?(光線折射)", "var_problem": "下雨後的太陽出來了,天空突然出現七彩溜滑梯", "var_action": "背對陽光用噴水器噴水,製造『私人彩虹』"},
+  {"story_id": "SCI_WIZ_04", "story_type": "Science", "character_id": "C04", "var_theme": "雲朵不是棉花糖(水氣聚集)", "var_problem": "天上的白雲飄來飄去,看起來好像好吃的棉花糖", "var_action": "觀察熱水壺冒出的白煙,捕捉『抓不住的雲』"},
+  {"story_id": "SCI_WIZ_05", "story_type": "Science", "character_id": "C04", "var_theme": "太陽被誰吃掉了?(日食現象)", "var_problem": "大白天太陽突然缺了一角,天色變暗了", "var_action": "用一顆橘子當月亮,擋住手電筒的光,玩『吞噬太陽』遊戲"},
+  {"story_id": "NEI_DRG_01", "story_type": "Social", "character_id": "C01", "var_theme": "看牙醫的勇氣", "var_problem": "看牙醫時要張大嘴巴,不能亂噴火", "var_action": "呼呼太緊張了,牙醫說『張嘴』時,他不小心打了一個充滿火花的噴嚏,把牙醫的眉毛燻黑了"},
+  {"story_id": "NEI_DRG_02", "story_type": "Social", "character_id": "C01", "var_theme": "圖書館的安靜時光", "var_problem": "在圖書館要輕聲細語,不能發出怪聲", "var_action": "呼呼為了忍住不打呼嚕,捏著鼻子憋氣,結果憋太久『噗』的一聲放了一個超級響亮的屁"},
+  {"story_id": "NEI_DRG_03", "story_type": "Social", "character_id": "C01", "var_theme": "第一次搭公車", "var_problem": "搭公車要排隊,尾巴不能佔到別人的位置", "var_action": "呼呼太興奮了,尾巴甩來甩去,不小心把排在後面的小松鼠『捲』了起來,當成了自己的背包"},
+  {"story_id": "NEI_DRG_04", "story_type": "Social", "character_id": "C01", "var_theme": "去朋友家作客", "var_problem": "進門要脫鞋子(雖然飛龍沒穿鞋),還要說『打擾了』", "var_action": "呼呼太緊張,把『打擾了』說成了『打架了』,還因為太害羞,把自己縮成一顆球滾進了客廳"},
+  {"story_id": "NEI_DRG_05", "story_type": "Social", "character_id": "C01", "var_theme": "超市買東西", "var_problem": "不能隨便捏水果,也不能在走道上奔跑", "var_action": "呼呼看到圓滾滾的西瓜太興奮,以為那是皮球,忍不住用尾巴拍了一下,結果西瓜滾得滿地都是"},
+  {"story_id": "SOC_KNI_01", "story_type": "Social", "character_id": "C02", "var_theme": "安靜的圖書館", "var_problem": "保持絕對安靜", "var_action": "鏘鏘穿著會發出『匡啷匡啷』巨響的盔甲進去,還大聲打噴嚏"},
+  {"story_id": "SOC_KNI_02", "story_type": "Social", "character_id": "C02", "var_theme": "排隊買票", "var_problem": "依序排隊不插隊", "var_action": "鏘鏘以為隊伍中間有空隙就可以站,結果被誤會是插隊"},
+  {"story_id": "SOC_KNI_03", "story_type": "Social", "character_id": "C02", "var_theme": "借用玩具", "var_problem": "要先問過主人", "var_action": "鏘鏘以為地上的寶劍沒人要就撿起來揮,結果那是別人的比賽道具"},
+  {"story_id": "SOC_KNI_04", "story_type": "Social", "character_id": "C02", "var_theme": "比賽輸贏", "var_problem": "輸了也要有風度", "var_action": "鏘鏘輸了比賽,不小心哭得比贏的人還大聲,讓場面很尷尬"},
+  {"story_id": "SOC_KNI_05", "story_type": "Social", "character_id": "C02", "var_theme": "打噴嚏", "var_problem": "要摀住口鼻", "var_action": "鏘鏘打噴嚏時頭盔蓋了下來,結果噴嚏反彈把自己震暈了"}
+]

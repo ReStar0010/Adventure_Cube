@@ -29,6 +29,46 @@ def load_logic_config():
     """載入 Logic.json 配置"""
     return load_json("Logic.json")
 
+
+def get_story_variables(character_id, template_type):
+    """
+    從 Story_Variables.json 依角色與模板類型隨機選一組變數，供 Science/Social 模板填入。
+    
+    Args:
+        character_id: 角色 ID (C01, C02, C03, C04)
+        template_type: "Science" 或 "Social"
+    
+    Returns:
+        dict: {"topic", "phenomenon", "experiment"} for Science
+              或 {"situation", "rule", "mistake"} for Social
+              若無匹配則回傳空 dict
+    """
+    try:
+        data = load_json("Story_Variables.json")
+    except Exception:
+        return {}
+    key = template_type.strip()
+    rows = data.get(key, [])
+    if not rows:
+        return {}
+    matches = [r for r in rows if (r.get("character_id") or "").upper() == (character_id or "").upper()]
+    if not matches:
+        return {}
+    r = random.choice(matches)
+    if key == "Science":
+        return {
+            "topic": r.get("var_theme", ""),
+            "phenomenon": r.get("var_problem", ""),
+            "experiment": r.get("var_action", ""),
+        }
+    if key == "Social":
+        return {
+            "situation": r.get("var_theme", ""),
+            "rule": r.get("var_problem", ""),
+            "mistake": r.get("var_action", ""),
+        }
+    return {}
+
 def load_template_file():
     template_path = os.path.join(DATA_FOLDER, "prompt_to_follow.md")
     with open(template_path, 'r', encoding='utf-8') as f:
@@ -378,65 +418,88 @@ def get_phase_summary(phase_instruction):
 
 def fill_template(template, story_type, elements):
     """填充模板變數"""
-    # 載入 META prompt
-    # 讀取 META prompt 的 markdown 文件
     meta_prompt_path = os.path.join(DATA_FOLDER, "META_prompt.md")
     with open(meta_prompt_path, encoding="utf-8") as f:
         meta_prompt = f.read()
-    
+
     theme = story_type
-    
-    # 獲取各階段指令（含 Logic.json 隨機抽取）
-    logic_setup = get_logic_setup_instruction(story_type, elements.get('prop_id'))
-    task_phase_1 = get_phase_instruction(story_type, 'Setup')
-    task_phase_2 = get_phase_instruction(story_type, 'Twist')
-    task_phase_3 = get_phase_instruction(story_type, 'Climax')
-    task_phase_4 = get_phase_instruction(story_type, 'Ending')
-    
-    # 從 Prop_Info 中提取道具名稱（移除邏輯部分）
-    prop_info = elements['Prop_Info']
-    prop_name = prop_info.split('(邏輯：')[0].strip() if '(邏輯：' in prop_info else prop_info.split('(')[0].strip()
-    
-    # 替換所有變數
-    # 注意：repo 內同時存在兩種 placeholder 風格
-    # - prompt_to_follow.md 使用 {{LikeThis}}
-    # - 短篇故事模板.json 的 phase 指令大量使用 {LikeThis}
-    # 由於 phase 指令會被塞進 {{Task_Phase_*}} 後才進入最終 prompt，
-    # 若不額外處理，{Location} 這類 token 會保留在 filled_template 中。
+    st = story_type.strip()
 
-    # Add a function to get word_limit of each phase for story_type
-    get_phase_word_limit = lambda st, pname: next((str(row.get('word_limit', '')) for row in load_json("短篇故事模板.json") if row.get('story_type', '').strip() == st.strip() and row.get('phase_name', '').strip().startswith(pname)), '')
+    # Science/Social 使用不同的 phase 名稱與 Story_Variables
+    if st == "Science":
+        phase_names = ("Intro", "Problem", "Effort", "Result")
+        logic_setup = ""
+        sv = get_story_variables(elements.get("char_a_id"), "Science")
+    elif st == "Social":
+        phase_names = ("Intro", "Problem", "Action", "Result")
+        logic_setup = ""
+        sv = get_story_variables(elements.get("char_a_id"), "Social")
+    else:
+        phase_names = ("Setup", "Twist", "Climax", "Ending")
+        logic_setup = get_logic_setup_instruction(story_type, elements.get("prop_id"))
+        sv = {}
+
+    task_phase_1 = get_phase_instruction(story_type, phase_names[0])
+    task_phase_2 = get_phase_instruction(story_type, phase_names[1])
+    task_phase_3 = get_phase_instruction(story_type, phase_names[2])
+    task_phase_4 = get_phase_instruction(story_type, phase_names[3])
+
+    prop_info = elements.get("Prop_Info", "")
+    prop_name = prop_info.split("(邏輯：")[0].strip() if "(邏輯：" in prop_info else (prop_info.split("(")[0].strip() if prop_info else "")
+
+    get_phase_word_limit = lambda stype, pname: next((str(row.get("word_limit", "")) for row in load_json("短篇故事模板.json") if row.get("story_type", "").strip() == stype.strip() and row.get("phase_name", "").strip().startswith(pname)), "")
     replacements = {
-        '{{META prompt.csv / Prompt_Instruction}}': meta_prompt,
-        '{{Theme}}': theme,
-        '{{Location}}': elements['Location'],
-        '{{Sensory_Detail}}': elements['Sensory_Detail'],
-        '{{Character_A}}': elements['Hero_Info'],
-        '{{Character_B}}': elements['Sidekick_Info'],
-        '{{Prop}}': prop_name,
-        '{{Comedy}}': elements['Comedy'],
-        '{{Logic_setup}}': logic_setup,
-        '{{Task_Phase_1}}': f"{task_phase_1}\n(字數上限：{get_phase_word_limit(story_type, 'Setup')})",
-        '{{Task_Phase_2}}': f"{task_phase_2}\n(字數上限：{get_phase_word_limit(story_type, 'Twist')})",
-        '{{Task_Phase_3}}': f"{task_phase_3}\n(字數上限：{get_phase_word_limit(story_type, 'Climax')})",
-        '{{Task_Phase_4}}': f"{task_phase_4}\n(字數上限：{get_phase_word_limit(story_type, 'Ending')})",
+        "{{META prompt.csv / Prompt_Instruction}}": meta_prompt,
+        "{{Theme}}": theme,
+        "{{Location}}": elements["Location"],
+        "{{Sensory_Detail}}": elements.get("Sensory_Detail", elements["Location"]),
+        "{{Character_A}}": elements["Hero_Info"],
+        "{{Character_B}}": elements["Sidekick_Info"],
+        "{{Prop}}": prop_name,
+        "{{Comedy}}": elements.get("Comedy", ""),
+        "{{Logic_setup}}": logic_setup,
+        "{{Task_Phase_1}}": f"{task_phase_1}\n(字數上限：{get_phase_word_limit(story_type, phase_names[0])})",
+        "{{Task_Phase_2}}": f"{task_phase_2}\n(字數上限：{get_phase_word_limit(story_type, phase_names[1])})",
+        "{{Task_Phase_3}}": f"{task_phase_3}\n(字數上限：{get_phase_word_limit(story_type, phase_names[2])})",
+        "{{Task_Phase_4}}": f"{task_phase_4}\n(字數上限：{get_phase_word_limit(story_type, phase_names[3])})",
     }
-
-    # 同步替換單大括號版本（來自短篇故事模板.json）
     replacements.update({
-        '{Theme}': theme,
-        '{Location}': elements['Location'],
-        '{Sensory_Detail}': elements['Sensory_Detail'],
-        '{Character_A}': elements['Hero_Info'],
-        '{Character_B}': elements['Sidekick_Info'],
-        '{Prop}': prop_name,
-        '{Comedy}': elements['Comedy'],
+        "{Theme}": theme,
+        "{Location}": elements["Location"],
+        "{Sensory_Detail}": elements.get("Sensory_Detail", elements["Location"]),
+        "{Character_A}": elements["Hero_Info"],
+        "{Character_B}": elements["Sidekick_Info"],
+        "{Prop}": prop_name,
+        "{Comedy}": elements.get("Comedy", ""),
+        "{Character}": elements["Hero_Info"],
     })
-    
+
+    # Science/Social 專用變數（來自 Story_Variables.json）
+    if st == "Science":
+        replacements.update({
+            "{Topic}": sv.get("topic", ""),
+            "{{Topic}}": sv.get("topic", ""),
+            "{Phenomenon}": sv.get("phenomenon", ""),
+            "{{Phenomenon}}": sv.get("phenomenon", ""),
+            "{Var_Theme}": sv.get("topic", ""),
+            "{{Experiment}}": sv.get("experiment", ""),
+            "{Var_Action}": sv.get("experiment", ""),
+        })
+    elif st == "Social":
+        replacements.update({
+            "{Situation}": sv.get("situation", ""),
+            "{{Situation}}": sv.get("situation", ""),
+            "{Phenomenon}": sv.get("situation", ""),
+            "{{Phenomenon}}": sv.get("situation", ""),
+            "{Rule}": sv.get("rule", ""),
+            "{{Rule}}": sv.get("rule", ""),
+            "{Mistake}": sv.get("mistake", ""),
+            "{{Mistake}}": sv.get("mistake", ""),
+        })
+
     filled_template = template
     for key, value in replacements.items():
-        filled_template = filled_template.replace(key, value)
-    
+        filled_template = filled_template.replace(key, str(value))
     return filled_template
 
 def format_output_file(story_type, elements, story, theme):

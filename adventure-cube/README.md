@@ -1,50 +1,135 @@
-# Welcome to your Expo app 👋
+# Adventure Cube — Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native + Expo mobile app (iOS & Android). This is Part 1 of the Adventure Cube project — the user-facing app. It communicates with the Django backend (`../server/`) via HTTP.
 
-## Get started
+---
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Quick Start
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
+# Press i → iOS Simulator
+# Press a → Android Emulator
+# Scan QR → Expo Go on a real device
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+**Required:** Node.js 18+, Expo CLI (`npm install -g expo-cli`)
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## Project Structure
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```
+adventure-cube/
+├── app/
+│   ├── _layout.tsx          # Root navigation layout
+│   ├── login.tsx            # Login screen
+│   ├── welcome.tsx          # Welcome / onboarding screen
+│   └── (tabs)/              # Tab-based navigation
+│       ├── _layout.tsx      # Tab bar configuration
+│       ├── index.tsx        # Home screen
+│       ├── story.tsx        # Story creation (select options + generate)
+│       ├── library.tsx      # Saved stories list
+│       ├── view-story.tsx   # Read a story / play audio
+│       ├── character.tsx    # Character selection screen
+│       ├── background.tsx   # Background selection screen
+│       ├── theme.tsx        # Theme selection screen
+│       ├── keyItems.tsx     # Key item selection screen
+│       └── confirm-story.tsx# Confirmation before generating
+│
+├── services/
+│   ├── api.config.ts        # Backend URL configuration
+│   ├── api.client.ts        # HTTP client (all API calls go through here)
+│   ├── api.types.ts         # TypeScript types matching Django models
+│   ├── story.service.ts     # Story CRUD and generation
+│   ├── assets.service.ts    # Fetch images / themes from backend
+│   └── index.ts             # Barrel export
+│
+├── hooks/
+│   ├── use-story-generation.ts  # Manages story generation state
+│   └── use-audio-generation.ts  # Manages TTS audio state
+│
+├── components/              # Reusable UI components
+├── types/                   # Shared TypeScript types
+├── utils/
+│   └── storage.ts           # AsyncStorage helpers
+└── assets/images/           # App images
+    ├── Characters/           # Character images
+    ├── Background/           # Background images
+    ├── Theme/                # Theme images
+    ├── Key Items/            # Key item images
+    └── Login/                # Login screen assets
+```
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## Connecting to the Backend
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Edit [services/api.config.ts](services/api.config.ts):
+
+```typescript
+export const API_CONFIG = {
+  BASE_URL: 'http://localhost:8000/api',       // iOS Simulator
+  // BASE_URL: 'http://10.0.2.2:8000/api',    // Android Emulator
+  // BASE_URL: 'http://192.168.x.x:8000/api', // Physical device
+};
+```
+
+For a physical device, use your computer's local IP address. Find it with:
+```bash
+# Mac
+ipconfig getifaddr en0
+# Windows
+ipconfig | findstr IPv4
+```
+
+---
+
+## User Flow
+
+```
+Login → Home → Select Character
+                     ↓
+               Select Background
+                     ↓
+               Select Theme + Key Items
+                     ↓
+               Confirm Story → Generate (API call)
+                     ↓
+               View Story (read text + play audio)
+                     ↓
+               Library (browse past stories)
+```
+
+---
+
+## Tech Stack
+
+| Library | Purpose |
+|---|---|
+| React Native + Expo | Cross-platform mobile app |
+| Expo Router | File-based navigation |
+| TypeScript | Type safety |
+| Tamagui | UI component library |
+| AsyncStorage | Local data persistence |
+
+---
+
+## Troubleshooting
+
+**"Network request failed"**
+- Make sure the Django backend is running (`python manage.py runserver 0.0.0.0:8000`)
+- Check the `BASE_URL` in `api.config.ts` matches your setup
+- On Android Emulator, use `10.0.2.2` instead of `localhost`
+
+**"Module not found"**
+```bash
+npm install
+npx expo install  # sync Expo SDK versions
+```
+
+**Expo Go version mismatch**
+```bash
+npx expo install --fix
+```

@@ -257,6 +257,18 @@ def run_fill_missing():
     regenerate_stories(all_missing, output_dir_suffix="_2")
 
 
+def parse_science_social_filename(filename):
+    """
+    解析 Science/Social 故事檔名，格式: {story_id}_TW_V1.txt
+    例如: SCI_PRI_01_TW_V1.txt -> story_id = SCI_PRI_01
+    """
+    name = (filename or "").replace(".txt", "").strip()
+    # SCI_PRI_01_TW_V1 -> SCI_PRI_01
+    if name.endswith("_TW_V1"):
+        return name[:-6]  # remove _TW_V1
+    return None
+
+
 def parse_filename(filename, directory_name):
     """
     從文件名解析故事參數
@@ -398,12 +410,12 @@ def main():
     
     # Target directories (包含原始目錄和 _2 目錄)
     target_dirs = [
-        base_dir / "stories_Nature",
-        base_dir / "stories_Nature_2",
-        base_dir / "stories_adventure_comedy",
-        base_dir / "stories_adventure_comedy_2",
-        base_dir / "stories_Sharing",
-        base_dir / "stories_Sharing_2"
+        base_dir / "stories_Science_Social",
+        # base_dir / "stories_Nature_2",
+        # base_dir / "stories_adventure_comedy",
+        # base_dir / "stories_adventure_comedy_2",
+        # base_dir / "stories_Sharing",
+        # base_dir / "stories_Sharing_2"
     ]
     
     stats = {
@@ -415,7 +427,8 @@ def main():
     
     files_to_delete = []
     files_to_update = []
-    stories_to_regenerate = []  # 需要重新生成的故事參數列表
+    stories_to_regenerate = []  # 需要重新生成的故事參數列表（adventure/sharing/nature）
+    science_social_to_regenerate = []  # [(story_id, output_dir), ...]
     
     print("Starting story file filtering...")
     print("=" * 60)
@@ -448,12 +461,19 @@ def main():
                     files_to_delete.append((file_path, reason))
                     print(f"  ❌ {file_path.name}: {reason}")
                     
-                    # 解析文件名以獲取故事參數
-                    story_params = parse_filename(file_path.name, target_dir.name)
-                    if story_params:
-                        stories_to_regenerate.append(story_params)
+                    # Science_Social 目錄：用 story_id 解析，輸出到同目錄
+                    if "science_social" in target_dir.name.lower():
+                        story_id = parse_science_social_filename(file_path.name)
+                        if story_id:
+                            science_social_to_regenerate.append((story_id, str(target_dir)))
+                        else:
+                            print(f"  ⚠️  無法解析 Science/Social 檔名: {file_path.name}")
                     else:
-                        print(f"  ⚠️  無法解析文件名參數: {file_path.name}")
+                        story_params = parse_filename(file_path.name, target_dir.name)
+                        if story_params:
+                            stories_to_regenerate.append(story_params)
+                        else:
+                            print(f"  ⚠️  無法解析文件名參數: {file_path.name}")
                     
             except Exception as e:
                 print(f"  ✗ Error processing {file_path.name}: {e}")
@@ -467,7 +487,8 @@ def main():
     print(f"  To keep: {stats['kept']} files")
     print(f"  To delete: {stats['deleted']} files")
     print(f"  To update: {len(files_to_update)} files")
-    print(f"  To regenerate: {len(stories_to_regenerate)} stories")
+    print(f"  To regenerate: {len(stories_to_regenerate)} stories (adventure/sharing/nature)")
+    print(f"  To regenerate (Science/Social): {len(science_social_to_regenerate)} stories")
     
     if files_to_delete or files_to_update:
         response = input("\nProceed with updates and deletions? (yes/no): ")
@@ -499,23 +520,39 @@ def main():
                     stats['errors'] += 1
         
         # Regenerate stories that were filtered out
-        if stories_to_regenerate:
+        if stories_to_regenerate or science_social_to_regenerate:
             print("\n" + "=" * 60)
-            print(f"\n準備重新生成 {len(stories_to_regenerate)} 個被過濾掉的故事...")
+            print(f"\n準備重新生成被過濾掉的故事...")
+            if stories_to_regenerate:
+                print(f"  - adventure/sharing/nature: {len(stories_to_regenerate)} 個")
+            if science_social_to_regenerate:
+                print(f"  - Science/Social: {len(science_social_to_regenerate)} 個")
             response = input("是否繼續重新生成？(yes/no): ")
             if response.lower() in ['yes', 'y']:
-                try:
-                    # 導入生成器模組
-                    sys.path.insert(0, str(base_dir))
-                    from short_story_generator import regenerate_stories
-                    
-                    # 一律重新生成到 _2 目錄（含從 _2 被 filter 掉的 → 同目錄補回）
-                    regenerate_stories(stories_to_regenerate, output_dir_suffix="_2")
-                except Exception as e:
-                    print(f"  ✗ 重新生成故事時發生錯誤: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    stats['errors'] += 1
+                sys.path.insert(0, str(base_dir))
+                if stories_to_regenerate:
+                    try:
+                        from short_story_generator import regenerate_stories
+                        regenerate_stories(stories_to_regenerate, output_dir_suffix="_2")
+                    except Exception as e:
+                        print(f"  ✗ 重新生成故事時發生錯誤: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        stats['errors'] += 1
+                if science_social_to_regenerate:
+                    try:
+                        from science_social_generator import regenerate_science_social_stories
+                        # 依輸出目錄分組
+                        by_dir = {}
+                        for story_id, out_dir in science_social_to_regenerate:
+                            by_dir.setdefault(out_dir, []).append(story_id)
+                        for out_dir, ids in by_dir.items():
+                            regenerate_science_social_stories(ids, output_dir=out_dir)
+                    except Exception as e:
+                        print(f"  ✗ 重新生成 Science/Social 故事時發生錯誤: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        stats['errors'] += 1
             else:
                 print("跳過重新生成步驟。")
         

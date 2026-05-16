@@ -1,18 +1,16 @@
-# OS Files
+# OS
 .DS_Store
 Thumbs.db
 *.swp
-.cursor
-.specify
+
 # IDE
 .vscode/
 .idea/
 *.sublime-*
+.cursor
+.specify
 
-audio_output
-0110_Stroies
-
-# Environment files
+# Environment
 .env
 .env.local
 .env.*.local
@@ -23,6 +21,23 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Dependencies (backup safety)
+# Dependencies
 node_modules/
-tts_experiments/
+
+# ── Generated story text files ──────────────────────────────────────────────
+# All pre-generated .txt story files produced by the story generation pipeline.
+# Re-generate with: cd server/stories && python short_story_generator.py
+server/stories/stories_Nature/
+server/stories/stories_Nature_2/
+server/stories/stories_adventure_comedy/
+server/stories/stories_Sharing_2/
+server/stories/stories_Science_Social/
+
+# ── Generated audio files ────────────────────────────────────────────────────
+# All .wav/.mp3 files produced by TTS scripts.
+# Re-generate with: cd story_generation/tts_scripts && python google_ai_studio_batched.py
+story_generation/tts_scripts/audio_*/
+story_generation/audio_output/
+
+# Django runtime media (audio generated on-demand by the live app)
+server/media/
