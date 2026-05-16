@@ -152,8 +152,7 @@ def load_credentials(vertex_ai_key: Optional[str] = None, azure_key: Optional[st
     elif os.environ.get('AZURE_TTS_KEY'):
         credentials['azure_key'] = os.environ.get('AZURE_TTS_KEY')
     else:
-        # Use the provided key from plan
-        credentials['azure_key'] = 'UMsGImykQR8T0qPbpG8gQAyMZ4uOP7vIoDvIgLzH95nZKYWf5YnHJQQJ99BKAC3pKaRXJ3w3AAAYACOG7d1p'
+        credentials['azure_key'] = ''  # set AZURE_TTS_KEY env var or pass --azure-key
     
     credentials['azure_region'] = azure_region or os.environ.get('AZURE_TTS_REGION', 'eastus')
     

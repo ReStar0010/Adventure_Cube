@@ -224,10 +224,8 @@ Batch-generated audio is stored in `story_generation/tts_scripts/audio_*/`:
 | `audio_generator.py` | Integrated story+audio generator (uses Django) |
 | `tts_scripts/` | Batch TTS scripts (Google AI Studio, Azure, Vertex AI) |
 | `tts_tests/` | Speed and quality benchmark tests |
-| `context_engineering/` | Prompt engineering notes and drafts |
 | `audio_output/` | Output directory for `audio_generator.py` |
 | `AZURE_TTS_SETUP.md` | Step-by-step Azure credential guide |
-| `Prompt.md` | High-level prompt design notes |
 
 ---
 

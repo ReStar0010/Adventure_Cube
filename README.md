@@ -2,6 +2,8 @@
 
 Adventure Cube is a children's storytelling app that lets kids customize characters, backgrounds, and themes to generate personalized stories with audio narration. The project is split into two independent parts:
 
+> **New to this project? Start here → [GETTING_STARTED.md](GETTING_STARTED.md)**
+
 | Part | Location | Purpose |
 |---|---|---|
 | **App** | `adventure-cube/` + `server/` | The live mobile app + REST API |

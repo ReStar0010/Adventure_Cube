@@ -11,7 +11,7 @@ import os
 import google.generativeai as genai
 
 # ========== 設定區 ==========
-GEMINI_API_KEY = "AIzaSyCqadx5k7aFDRF6IcHsii_TUXMfxk9ieeE"  # 請填入你的 API Key
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # set in server/.env or environment
 
 # 自動找到正確的資料夾路徑 (相對於這個腳本的位置)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

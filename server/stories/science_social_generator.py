@@ -10,7 +10,7 @@ import random
 import google.generativeai as genai
 
 # ========== 設定區 ==========
-GEMINI_API_KEY = "AIzaSyCqadx5k7aFDRF6IcHsii_TUXMfxk9ieeE"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # set in server/.env or environment
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FOLDER = os.path.join(SCRIPT_DIR, "prompt_0105")
 # ============================
