@@ -44,5 +44,5 @@ server/media/
 
 # ── Credentials & secrets ────────────────────────────────────────────────────
 # Never commit real credentials. Fill in placeholders with your own keys.
-story_generation/tts_scripts/gcp_credentials.json
+gcp_credentials.json
 story_generation/tts_tests/credential.json
